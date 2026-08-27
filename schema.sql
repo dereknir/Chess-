@@ -78,11 +78,15 @@ create index moves_player_idx on moves (player_id, created_at desc);
 
 -- ============================================================
 --  Seed
---  token 之後想換直接 update 這兩列即可。
+--
+--  token 就是秘密網址的憑證，不要把真的值寫回這個檔案（它會進 git）。
+--  建表後直接在 DB 裡改：
+--    update players set token = '...' where id = 'derek';
+--    update players set token = '...' where id = 'friend';
 -- ============================================================
 insert into players (id, display_name, token, discord_id) values
   ('derek',  'Derek',  'CHANGE_ME_BEFORE_DEPLOY', null),
-  ('friend', '對手',   'RamenOrSausageEgg',        null);
+  ('friend', '對手',   'CHANGE_ME_TOO',           null);
 
 
 -- ============================================================

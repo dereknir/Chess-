@@ -1,5 +1,11 @@
 # 交接說明：通信對弈（correspondence chess）
 
+> **已完成。這份留著當初始設計的紀錄，不是待辦清單。**
+> 網站已經上線（Vercel，region sin1），下面「還沒做（你的任務）」和「任務清單」
+> 那幾節都做完了，「我預期你會遇到的問題」列的三個點也都處理掉了：
+> `next.config.mjs` 的 `experimental.after` 已移除、`layout.tsx` 的 next/font 已拿掉、
+> `actions.ts` 的 `notice` 型別已解決。現況以 [README.md](README.md) 為準。
+
 ## 這是什麼
 
 我和一個朋友兩個人用的西洋棋通信對弈網站。一方落子，另一方的 Discord 收到推播。

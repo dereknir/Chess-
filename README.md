@@ -1,4 +1,4 @@
-# 通信對弈
+# 自食棋力
 
 兩人專用的西洋棋對弈站。一方落子，另一方的 Discord 就收到推播。
 
@@ -7,13 +7,17 @@
 - 可以從殘局開局：貼 FEN 或直接擺子
 - 一鍵複製 PGN，丟到 Lichess 拿 Stockfish 分析
 
-## 需要準備的東西
+## 本機開發
 
-| 項目 | 說明 |
-|---|---|
-| Postgres | Neon 或 Supabase 免費方案就夠 |
-| Discord 私人伺服器 | 一個頻道，一條 webhook |
-| Vercel | 免費方案 |
+```bash
+npm install
+cp .env.example .env.local    # 填值，見下
+npm run dev
+```
+
+第一次要用 `http://localhost:3000/?as=<你的 token>` 進站，token 寫進 cookie 後就
+可以直接開首頁。token 在 `players` 表裡，`schema.sql` 的 seed 是佔位字串，
+建好 DB 之後記得 update 成自己的。
 
 ### 環境變數
 
@@ -28,63 +32,53 @@ APP_URL=https://your-app.vercel.app
 # BOARD_IMAGE_BASE=https://... → 自架 lila-gif 的 /image.gif
 ```
 
-## 上線步驟
-
-1. **建資料庫**，跑 `schema.sql`
-2. **改掉 Derek 的 token** —— seed 裡是 `CHANGE_ME_BEFORE_DEPLOY`：
-   ```sql
-   update players set token = '你自己想的字串' where id = 'derek';
-   ```
-3. **建 Discord webhook**
-   私人伺服器 → 頻道右鍵「編輯頻道」→ 整合 → 建立 Webhook → 複製網址。
-   不用建 bot、不用審核、不用 OAuth。
-4. **填 Discord user ID**
-   Discord 設定 → 進階 → 開「開發者模式」，右鍵頭像複製 ID：
-   ```sql
-   update players set discord_id = '...' where id = 'derek';
-   update players set discord_id = '...' where id = 'friend';
-   ```
-   沒填也能跑，只是不會 @ 人，對方靜音頻道就收不到推播。
-5. **部署到 Vercel**，設好環境變數
-6. **各自開一次專屬網址**
-   ```
-   https://your-app.vercel.app/?as=<derek 的 token>
-   https://your-app.vercel.app/?as=RamenOrSausageEgg
-   ```
-   開過一次就寫進 cookie，之後直接進首頁。
+**Neon 的連線字串結尾要手動拿掉 `&channel_binding=require`。**
+postgres.js 會把它當成啟動參數送給伺服器，而 Postgres 不認得這個參數名，
+留著會連不上。換機器重裝時最容易再踩一次。
 
 ## 檔案
 
 ```
 schema.sql              資料表 + seed + 幾個備忘用的分析查詢
 lib/db.ts               連線與型別
-lib/auth.ts             秘密網址認證
-lib/chess.ts            chess.js 包裝：走子、終局判定、PGN 產生
+lib/auth.ts             秘密網址認證：token → cookie
+lib/chess.ts            chess.js 包裝：走子、終局判定、局面比對、PGN 產生
 lib/discord.ts          webhook 推播
 app/actions.ts          playMove / newGame / resign
+app/enter/route.ts      秘密網址的落點：驗 token、寫 cookie、導回首頁
+app/layout.tsx          外框與導覽
+app/globals.css         全部樣式（沒有用 Tailwind）
 app/page.tsx            目前這盤，或開局表單
 app/NewGame.tsx         開局表單（含擺子編輯器）
 app/Board.tsx           可下棋的棋盤
 app/MoveLog.tsx         記譜表
+app/PgnButton.tsx       複製 PGN
 app/history/page.tsx    歷史對局與戰績
 app/game/[id]/          單局重播
-tests/                  chess.js 邏輯的測試
+tests/                  棋規與擺子編輯器的測試
 ```
 
 ## 跑測試
 
 ```bash
-npm i chess.js
-node tests/chess.test.mjs     # 走子、入堡、過路兵、終局、PGN round-trip
+npm test
+```
+
+或分開跑：
+
+```bash
+node tests/chess.test.mjs     # 走子、入堡、過路兵、終局、三次重複、PGN round-trip
 node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 ```
 
-測試是直接複製 `lib/chess.ts` 和 `NewGame.tsx` 的邏輯貼進去跑的（沒有建置步驟），
-所以**改動那兩個檔案時記得同步更新測試檔**。
+測試是直接複製 `lib/chess.ts`、`NewGame.tsx` 和 `playMove` 的判定邏輯貼進去跑的
+（沒有建置步驟），所以**改動那些檔案時記得同步更新測試檔**。
 
 ## 設計決定
 
-**規則判定全部交給 chess.js。** 入堡的四個條件、吃過路兵、升變、三次重複、逼和——自己刻一定會漏掉某個邊界情況。
+**單步規則判定全部交給 chess.js。** 入堡的四個條件、吃過路兵、升變、逼和、50 步規則——自己刻一定會漏掉某個邊界情況。
+
+**唯一的例外是三次重複，那要自己數。** `applyMove` 每步都是 `new Chess(fen)` 重建，實例裡沒有歷史局面，所以 `isThreefoldRepetition()` 永遠回傳 false——這條曾經寫在 `readOutcome` 裡，是死碼，重複再多次也判不出和棋。現在改成在 `playMove` 裡撈該局的 `initial_fen` 加上所有 `moves.fen_after`，數同一個局面出現幾次，滿三次就判和。比對局面只看 FEN 的前四欄（盤面、行動方、入堡權、過路兵格），後兩欄是半步計時和回合數，算進去的話同一個局面永遠不會相等。
 
 **踩過的坑：`move.isCapture()` 對吃過路兵回傳 false。** chess.js 只認 flag `'c'`，而過路兵的 flag 是 `'e'`。改用 `move.captured !== undefined`，兩種都涵蓋。不修的話所有過路兵都會被記成沒吃子，之後統計會少算。
 
@@ -100,9 +94,11 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 
 **分析不自己做。** `buildPgn()` 產生的 PGN 直接貼到 Lichess 的 Import game，就拿到 Stockfish 標好的失誤與準確率。自己跑引擎划不來。
 
-## 還沒做的
+## 待實裝
 
 - [ ] 提和（認輸已經有了）
 - [ ] 升變選子（目前一律升后，99% 的情況都對）
 - [ ] 「上一步」高亮
+- [ ] 悔棋
+- [ ] 棋子可走格提示（點起一顆子，把它能走的格子標出來）
 - [ ] 用 `moves` 表做統計頁：平均思考時間、各自的失誤分佈
