@@ -22,8 +22,11 @@ export type AppliedMove = {
 /**
  * 套用一步棋並回報結果。
  *
- * 所有規則判定都交給 chess.js —— 吃過路兵、入堡的四個條件、升變、
- * 三次重複、50 步規則、逼和，全部自己刻一定會漏掉某個邊界情況。
+ * 單步規則判定都交給 chess.js —— 吃過路兵、入堡的四個條件、升變、
+ * 50 步規則、逼和，全部自己刻一定會漏掉某個邊界情況。
+ *
+ * 例外是三次重複：那需要歷史局面，這裡拿不到，由 app/actions.ts 數
+ * moves 表的 fen_after 來判（見 positionKey）。
  *
  * 走法不合法就丟例外，呼叫端負責轉成使用者看得懂的訊息。
  */
@@ -67,13 +70,39 @@ function readOutcome(game: Chess): Outcome {
   if (game.isInsufficientMaterial()) {
     return { status: 'draw', result: '1/2-1/2', reason: '子力不足以將死' };
   }
-  if (game.isThreefoldRepetition()) {
-    return { status: 'draw', result: '1/2-1/2', reason: '三次重複局面' };
-  }
+  // 這裡刻意不呼叫 isThreefoldRepetition()。applyMove 每步都是 new Chess(fen)，
+  // 實例裡沒有歷史局面，那個方法永遠回傳 false —— 曾經寫在這裡，是死碼。
+  // 三次重複改由 app/actions.ts 數 moves.fen_after 判定。
+  //
+  // 走到這行的 isDraw() 只可能是 50 步規則：逼和與子力不足上面攔掉了，
+  // 三次重複同樣因為沒有歷史而不會成立。
   if (game.isDraw()) {
     return { status: 'draw', result: '1/2-1/2', reason: '50 步規則' };
   }
   return { status: 'ongoing' };
+}
+
+export const THREEFOLD_REASON = '三次重複局面';
+
+/**
+ * 判斷「同一個局面」時用的 key：只取 FEN 的前四欄
+ * —— 盤面、行動方、入堡權、過路兵格。
+ *
+ * 後兩欄（半步計時、回合數）不算，否則同一個局面永遠不會相等。
+ * 這個比法和 chess.js 內部的 trimFen 一致。
+ */
+export function positionKey(fen: string): string {
+  return fen.split(' ').slice(0, 4).join(' ');
+}
+
+/**
+ * 這個局面到目前為止出現過幾次。
+ *
+ * fens 要帶入該局的起始局面和每一步的 fen_after，順序無所謂。
+ */
+export function countRepetitions(fens: string[], fen: string): number {
+  const key = positionKey(fen);
+  return fens.filter((f) => positionKey(f) === key).length;
 }
 
 /** 給棋盤編輯器用：檢查手動擺出來的殘局是不是合法局面。 */

@@ -20,9 +20,37 @@ function readOutcome(game) {
   }
   if (game.isStalemate()) return { status:'stalemate', result:'1/2-1/2' };
   if (game.isInsufficientMaterial()) return { status:'draw', result:'1/2-1/2', reason:'子力不足以將死' };
-  if (game.isThreefoldRepetition()) return { status:'draw', result:'1/2-1/2', reason:'三次重複局面' };
+  // 沒有 isThreefoldRepetition()：new Chess(fen) 建出來的實例沒有歷史，那個方法
+  // 永遠 false。三次重複由 positionKey/countRepetitions 判（下面有測試）。
   if (game.isDraw()) return { status:'draw', result:'1/2-1/2', reason:'50 步規則' };
   return { status:'ongoing' };
+}
+const THREEFOLD_REASON = '三次重複局面';
+function positionKey(fen) {
+  return fen.split(' ').slice(0, 4).join(' ');
+}
+function countRepetitions(fens, fen) {
+  const key = positionKey(fen);
+  return fens.filter((f) => positionKey(f) === key).length;
+}
+
+// 從 app/actions.ts 的 playMove 複製：走一步、記進歷史、必要時蓋掉 outcome。
+// 用陣列代替 moves 表，判定邏輯一模一樣。
+function playSequence(initialFen, moves) {
+  const fens = [initialFen];
+  let fen = initialFen;
+  let last = { status: 'ongoing' };
+  for (const [from, to] of moves) {
+    const r = applyMove(fen, from, to);
+    fen = r.fenAfter;
+    fens.push(fen);
+    last = r.outcome;
+    if (last.status === 'ongoing' && countRepetitions(fens, fen) >= 3) {
+      last = { status:'draw', result:'1/2-1/2', reason: THREEFOLD_REASON };
+    }
+    if (last.status !== 'ongoing') break;
+  }
+  return { outcome: last, fen, plies: fens.length - 1 };
 }
 function isPlayableFen(fen) {
   try {
@@ -117,6 +145,52 @@ t('單車殺王：邊線將軍 = 將死', () => {
 t('將軍會被標記 isCheck', () => {
   const r = applyMove('4k3/8/8/8/8/8/8/4K2R w K - 0 1','h1','h8');
   if(!r.isCheck) throw new Error('沒標記將軍');
+});
+
+console.log('\n【三次重複】');
+// 后和王來回踱步：Qa2 Ke7 Qa1 Ke8 走完一圈就回到起始局面。
+const SHUFFLE = '4k3/8/8/8/8/8/8/Q3K3 w - - 0 1';
+const CYCLE = [['a1','a2'],['e8','e7'],['a2','a1'],['e7','e8']];
+t('positionKey 忽略半步計時與回合數', () => {
+  eq(positionKey('4k3/8/8/8/8/8/8/Q3K3 w - - 0 1'),
+     positionKey('4k3/8/8/8/8/8/8/Q3K3 w - - 47 99'));
+});
+t('positionKey 把入堡權不同視為不同局面', () => {
+  const a = positionKey('4k3/8/8/8/8/8/8/4K2R w K - 0 1');
+  const b = positionKey('4k3/8/8/8/8/8/8/4K2R w - - 0 1');
+  if (a === b) throw new Error('入堡權不同卻算成同一局面');
+});
+t('起始局面本身也算一次', () => {
+  eq(countRepetitions([SHUFFLE, 'x x x x', SHUFFLE], SHUFFLE), 2);
+});
+t('局面第三次出現 → 判和（第 8 手）', () => {
+  const r = playSequence(SHUFFLE, [...CYCLE, ...CYCLE, ...CYCLE]);
+  eq(r.outcome.status, 'draw');
+  eq(r.outcome.reason, THREEFOLD_REASON);
+  eq(r.plies, 8, '應該在第 8 手就停下');
+});
+t('只重複兩次還沒和', () => {
+  eq(playSequence(SHUFFLE, CYCLE).outcome.status, 'ongoing');
+});
+t('重複過的局面不影響將死判定', () => {
+  // 先踱一圈（起始局面出現兩次），再走雙車梯形殺；結果要是 checkmate。
+  const r = playSequence('4k3/8/8/8/8/8/8/K5RR w - - 0 1', [
+    ['g1','g2'],['e8','d8'],['g2','g1'],['d8','e8'],
+    ['h1','h7'],['e8','d8'],['g1','g8'],
+  ]);
+  eq(r.outcome.status, 'checkmate');
+  eq(r.outcome.result, '1-0');
+  eq(r.plies, 7);
+});
+t('chess.js 的 isThreefoldRepetition 在 new Chess(fen) 下永遠 false', () => {
+  // 這就是不能直接用它的原因：實例只有 FEN、沒有歷史局面。
+  let fen = SHUFFLE;
+  for (const [from, to] of [...CYCLE, ...CYCLE, ...CYCLE]) {
+    const g = new Chess(fen);
+    g.move({ from, to });
+    fen = g.fen();
+    if (g.isThreefoldRepetition()) throw new Error('居然抓到了？那就可以直接用');
+  }
 });
 
 console.log('\n【FEN 驗證】');

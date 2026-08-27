@@ -4,7 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import sql, { type Game } from '@/lib/db';
 import { requirePlayer } from '@/lib/auth';
-import { applyMove, isPlayableFen, STARTING_FEN } from '@/lib/chess';
+import {
+  applyMove,
+  countRepetitions,
+  isPlayableFen,
+  STARTING_FEN,
+  THREEFOLD_REASON,
+  type Outcome,
+} from '@/lib/chess';
 import { notifyMove } from '@/lib/discord';
 
 export type ActionResult = { ok: true } | { ok: false; message: string };
@@ -72,7 +79,19 @@ export async function playMove(input: {
            ${thinkingMs})
       `;
 
-      const o = applied.outcome;
+      // 三次重複只能在這裡判：chess.js 那邊每步都 new Chess(fen)，實例裡沒有
+      // 歷史局面。moves 已經 insert 完，所以下面撈到的資料含這一步。
+      let o: Outcome = applied.outcome;
+      if (o.status === 'ongoing') {
+        const seen = await tx<{ fen_after: string }[]>`
+          select fen_after from moves where game_id = ${game.id}
+        `;
+        const fens = [game.initial_fen, ...seen.map((r) => r.fen_after)];
+        if (countRepetitions(fens, applied.fenAfter) >= 3) {
+          o = { status: 'draw', result: '1/2-1/2', reason: THREEFOLD_REASON };
+        }
+      }
+
       if (o.status === 'ongoing') {
         await tx`
           update games set
@@ -205,10 +224,7 @@ export async function resign(gameId: number): Promise<ActionResult> {
 
 class UserError extends Error {}
 
-function endingCopy(
-  o: ReturnType<typeof applyMove>['outcome'],
-  moverName: string,
-) {
+function endingCopy(o: Outcome, moverName: string) {
   switch (o.status) {
     case 'checkmate':
       return { headline: '將死', detail: `${moverName} 獲勝。` };
