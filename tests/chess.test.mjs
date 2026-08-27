@@ -35,7 +35,7 @@ function isPlayableFen(fen) {
 function buildPgn(o) {
   const d = o.date;
   const dateTag = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-  const tags = [`[Event "通信對弈"]`,`[Site "-"]`,`[Date "${dateTag}"]`,
+  const tags = [`[Event "自食棋力"]`,`[Site "-"]`,`[Date "${dateTag}"]`,
     `[White "${o.white}"]`,`[Black "${o.black}"]`,`[Result "${o.result}"]`];
   if (o.initialFen !== STARTING_FEN) tags.push(`[SetUp "1"]`, `[FEN "${o.initialFen}"]`);
   const startFullmove = Number(o.initialFen.split(' ')[5] ?? 1);

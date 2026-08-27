@@ -109,7 +109,7 @@ export function buildPgn(opts: {
   const dateTag = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 
   const tags = [
-    `[Event "通信對弈"]`,
+    `[Event "自食棋力"]`,
     `[Site "-"]`,
     `[Date "${dateTag}"]`,
     `[White "${opts.white}"]`,

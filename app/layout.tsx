@@ -11,8 +11,8 @@ const serif = Noto_Serif_TC({
 });
 
 export const metadata: Metadata = {
-  title: '通信對弈',
-  description: '兩人一盤，一天走幾步。',
+  title: '自食棋力',
+  description: '我要成為西洋棋大師!',
 };
 
 export default async function RootLayout({
@@ -27,7 +27,7 @@ export default async function RootLayout({
       <body>
         <div className="shell">
           <header className="topbar">
-            <h1 className="wordmark">通信對弈</h1>
+            <h1 className="wordmark">自食棋力</h1>
             <nav>
               <a href="/">目前這盤</a>
               <a href="/history">歷史</a>
