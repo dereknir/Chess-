@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
-import { Noto_Serif_TC } from 'next/font/google';
 import { currentPlayer } from '@/lib/auth';
 import './globals.css';
 
-const serif = Noto_Serif_TC({
-  subsets: ['latin'],
-  weight: ['500', '600'],
-  variable: '--font-serif',
-  display: 'swap',
-});
+// 這裡曾經用 next/font/google 載 Noto Serif TC，拿掉了，原因兩個：
+//   1. 它產生的 CSS 變數 --font-serif 沒有任何地方用到 —— globals.css 的
+//      --serif 是寫死字型名 "Noto Serif TC"，對不上 next/font 產生的 family。
+//   2. subsets 只能給 'latin'，中文字根本沒在那個子集裡。
+// 結果是白付一份 webfont 下載，中文照樣走 globals.css 的系統字型 fallback。
+// 想要真正的中文 webfont 就得載 CJK 子集，那是好幾 MB，不值得。
 
 export const metadata: Metadata = {
   title: '自食棋力',
@@ -23,7 +22,7 @@ export default async function RootLayout({
   const me = await currentPlayer();
 
   return (
-    <html lang="zh-Hant" className={serif.variable}>
+    <html lang="zh-Hant">
       <body>
         <div className="shell">
           <header className="topbar">
