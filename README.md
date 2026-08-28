@@ -45,26 +45,32 @@ postgres.js 會把它當成啟動參數送給伺服器，而 Postgres 不認得�
 ## 檔案
 
 ```
-schema.sql              資料表 + seed + 幾個備忘用的分析查詢
-lib/db.ts               連線與型別
-lib/auth.ts             秘密網址認證：token → cookie
-lib/chess.ts            chess.js 包裝：走子、終局判定、局面比對、PGN 產生
-lib/discord.ts          webhook 推播
-lib/pusher.ts           Pusher 後端實例（即時推播）
-app/actions.ts          playMove / newGame / resign / takeback
-app/enter/route.ts      秘密網址的落點：驗 token、寫 cookie、導回首頁
-app/RealtimeRefresh.tsx 訂閱 Pusher 事件，對方下完立刻刷新
-app/layout.tsx          外框與導覽
-app/globals.css         全部樣式（沒有用 Tailwind）
-app/page.tsx            目前這盤，或開局表單
-app/NewGame.tsx         開局表單（含擺子編輯器）
-app/Board.tsx           可下棋的棋盤（含落點提示、悔棋按鈕、步數/子數顯示）
-app/MoveLog.tsx         記譜表
-app/PgnButton.tsx       複製 PGN
-app/history/page.tsx    歷史對局與戰績
-app/game/[id]/          單局重播
-tests/                  棋規與擺子編輯器的測試
+schema.sql               資料表 + seed + 補給既有 DB 的欄位 + 備忘查詢
+lib/db.ts                連線與型別
+lib/auth.ts              秘密網址認證：token → cookie
+lib/chess.ts             chess.js 包裝：走子、終局判定、局面比對、PGN 產生
+lib/discord.ts           webhook 推播
+lib/pusher.ts            Pusher 後端實例（即時推播）
+lib/themes.ts            棋盤配色定義
+app/actions.ts           playMove / newGame / resign / takeback / 提和 / 備註 / 主題
+app/enter/route.ts       秘密網址的落點：驗 token、寫 cookie、導回首頁
+app/RealtimeRefresh.tsx  訂閱 Pusher 事件，對方下完立刻刷新
+app/layout.tsx           外框與導覽
+app/globals.css          全部樣式（沒有用 Tailwind）
+app/page.tsx             目前這盤，或開局表單
+app/NewGame.tsx          開局表單（含擺子編輯器）
+app/Board.tsx            可下棋的棋盤（含落點提示、上一步高亮、悔棋、提和）
+app/MoveLog.tsx          記譜表
+app/PgnButton.tsx        複製 PGN
+app/ThemeSelector.tsx    棋盤配色切換
+app/history/page.tsx     歷史對局與戰績
+app/stats/page.tsx       個人統計
+app/game/[id]/           單局重播（含備註編輯）
+tests/                   棋規與擺子編輯器的測試
 ```
+
+`schema.sql` 上面的 `create table` 是給全新資料庫用的；線上那套是一路手動加欄位
+長出來的，所以檔案下半部另外留了一段可重複執行的 `alter table`，補欄位時貼那段。
 
 ## 跑測試
 

@@ -10,6 +10,7 @@ create table players (
   display_name text        not null,
   token        text        not null unique,
   discord_id   text,                      -- 用來 <@id> 強制推播，可為 null
+  board_theme  text,                      -- lib/themes.ts 的 id；null = 經典
   created_at   timestamptz not null default now()
 );
 
@@ -28,6 +29,16 @@ create table games (
   -- ongoing | checkmate | stalemate | draw | resigned
   result       text,                      -- '1-0' | '0-1' | '1/2-1/2'
   winner_id    text        references players(id),
+
+  -- 悔棋：每人每局 2 次，用掉就扣
+  white_takebacks_left int not null default 2,
+  black_takebacks_left int not null default 2,
+
+  -- 提和：誰提的就記誰，對方接受或拒絕後清回 null。
+  -- 接受的話 status 走既有的 'draw'，不另開狀態。
+  pending_draw_offer_by text references players(id),
+
+  note         text,                      -- 這局的備註（「某某開局」之類）
 
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -75,6 +86,19 @@ create table moves (
 
 create index moves_player_idx on moves (player_id, created_at desc);
 
+-- ---------- chat_messages ----------
+-- 對局中的留言。sendChatMessage() 會寫這張表，但目前還沒有讀它的畫面
+-- ——只寫不讀，UI 補上之前這裡都會是空的。
+create table chat_messages (
+  id           bigserial   primary key,
+  game_id      bigint      not null references games(id) on delete cascade,
+  player_id    text        not null references players(id),
+  message      text        not null,      -- 應用層限 500 字
+  created_at   timestamptz not null default now()
+);
+
+create index chat_messages_game_idx on chat_messages (game_id, created_at);
+
 
 -- ============================================================
 --  Seed
@@ -87,6 +111,35 @@ create index moves_player_idx on moves (player_id, created_at desc);
 insert into players (id, display_name, token, discord_id) values
   ('derek',  'Derek',  'CHANGE_ME_BEFORE_DEPLOY', null),
   ('friend', '對手',   'CHANGE_ME_TOO',           null);
+
+
+-- ============================================================
+--  補給既有資料庫用
+--
+--  上面的 create table 是給全新資料庫的，對已經在跑的 DB 直接跑會撞
+--  "already exists"。線上那套是後來一路手動加欄位的，這段把它補齊，
+--  可以重複執行。整段貼進 Neon 的 SQL Editor 就好。
+--
+--    alter table players add column if not exists board_theme text;
+--
+--    alter table games add column if not exists
+--      white_takebacks_left int not null default 2;
+--    alter table games add column if not exists
+--      black_takebacks_left int not null default 2;
+--    alter table games add column if not exists
+--      pending_draw_offer_by text references players(id);
+--    alter table games add column if not exists note text;
+--
+--    create table if not exists chat_messages (
+--      id         bigserial   primary key,
+--      game_id    bigint      not null references games(id) on delete cascade,
+--      player_id  text        not null references players(id),
+--      message    text        not null,
+--      created_at timestamptz not null default now()
+--    );
+--    create index if not exists chat_messages_game_idx
+--      on chat_messages (game_id, created_at);
+-- ============================================================
 
 
 -- ============================================================

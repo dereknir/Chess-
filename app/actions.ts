@@ -487,27 +487,19 @@ export async function updateGameNote(
 export async function updateBoardTheme(
   themeId: string,
 ): Promise<ActionResult> {
-  console.log('[updateBoardTheme] 開始更新，主題:', themeId);
-
   const me = await requirePlayer();
-  console.log('[updateBoardTheme] 當前用戶:', me.id);
 
   try {
-    const result = await sql`
-      update players set
-        board_theme = ${themeId}
-      where id = ${me.id}
-      returning id, board_theme
+    await sql`
+      update players set board_theme = ${themeId} where id = ${me.id}
     `;
-    console.log('[updateBoardTheme] 更新成功:', result);
   } catch (err) {
-    console.error('[updateBoardTheme] 更新失敗:', err);
-    return { ok: false, message: '更新主題失敗：' + String(err) };
+    console.error('[updateBoardTheme]', err);
+    return { ok: false, message: '更新主題失敗，再試一次。' };
   }
 
-  console.log('[updateBoardTheme] 呼叫 revalidatePath');
+  // 主題是在 layout 讀的（currentPlayer），所以整層都要 revalidate。
   revalidatePath('/', 'layout');
-  console.log('[updateBoardTheme] 完成');
   return { ok: true };
 }
 
