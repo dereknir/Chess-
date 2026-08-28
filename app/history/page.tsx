@@ -12,6 +12,7 @@ type Row = {
   white_name: string;
   black_name: string;
   winner_name: string | null;
+  note: string | null;
 };
 
 export default async function History() {
@@ -26,7 +27,7 @@ export default async function History() {
   }
 
   const games = await sql<Row[]>`
-    select g.id, g.result, g.ended_at, g.status, g.ply_count,
+    select g.id, g.result, g.ended_at, g.status, g.ply_count, g.note,
            w.display_name as white_name,
            b.display_name as black_name,
            n.display_name as winner_name
@@ -69,13 +70,18 @@ export default async function History() {
           <li key={g.id}>
             <a href={`/game/${g.id}`}>
               <span className="score">{g.result}</span>
-              <span className="line">
-                {g.white_name} 對 {g.black_name}
-                　
-                <span style={{ color: 'var(--dim)', fontSize: 12 }}>
-                  {describe(g)}
-                </span>
-              </span>
+              <div>
+                <div className="line">
+                  {g.white_name} 對 {g.black_name}
+
+                  <span style={{ color: 'var(--dim)', fontSize: 12 }}>
+                    {describe(g)}
+                  </span>
+                </div>
+                {g.note && (
+                  <div className="record-note">{g.note}</div>
+                )}
+              </div>
               <span className="when">
                 {g.ended_at.toISOString().slice(0, 10)}
               </span>

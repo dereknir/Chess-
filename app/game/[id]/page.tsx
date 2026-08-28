@@ -5,6 +5,7 @@ import { buildPgn } from '@/lib/chess';
 import Replay from './Replay';
 import MoveLog from '../../MoveLog';
 import PgnButton from '../../PgnButton';
+import NoteEditor from './NoteEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,10 +48,12 @@ export default async function GamePage({
       <div className="verdict">
         <h2>{headline(game, white.display_name, black.display_name)}</h2>
         <p>
-          {white.display_name} 執白　·　{Math.ceil(game.ply_count / 2)} 回合　·　
+          {white.display_name} 執白　·　{Math.ceil(game.ply_count / 2)} 回合　·
           {game.ended_at?.toISOString().slice(0, 10)}
         </p>
       </div>
+
+      <NoteEditor gameId={game.id} initialNote={game.note} />
 
       <div className="game">
         <Replay

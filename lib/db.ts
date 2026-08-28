@@ -31,6 +31,7 @@ export type Game = {
   white_takebacks_left: number;
   black_takebacks_left: number;
   pending_draw_offer_by: string | null;
+  note: string | null;
   created_at: Date;
   updated_at: Date;
   ended_at: Date | null;

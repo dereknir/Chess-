@@ -453,6 +453,34 @@ export async function respondToDraw(
   return { ok: true };
 }
 
+/**
+ * 更新棋局備註。
+ */
+export async function updateGameNote(
+  gameId: number,
+  note: string,
+): Promise<ActionResult> {
+  await requirePlayer();
+
+  const trimmedNote = note.trim();
+
+  try {
+    await sql`
+      update games set
+        note = ${trimmedNote || null},
+        updated_at = now()
+      where id = ${gameId}
+    `;
+  } catch (err) {
+    console.error('[updateGameNote]', err);
+    return { ok: false, message: '更新備註失敗，再試一次。' };
+  }
+
+  revalidatePath('/game/[id]');
+  revalidatePath('/history');
+  return { ok: true };
+}
+
 // ---------- helpers ----------
 
 class UserError extends Error {}
