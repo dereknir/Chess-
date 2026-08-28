@@ -87,6 +87,8 @@ export default async function Page({
           opponentName={opponent.display_name}
           myTakebacksLeft={myTakebacksLeft}
           lastMoveUci={lastMove?.uci ?? null}
+          pendingDrawOfferBy={game.pending_draw_offer_by}
+          myId={me.id}
         />
 
         <MoveLog

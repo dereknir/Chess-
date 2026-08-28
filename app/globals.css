@@ -158,6 +158,41 @@ a { color: inherit; }
   border-radius: 0 6px 6px 0;
 }
 
+/* ---------- 提和通知 ---------- */
+
+.draw-notice {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--brass);
+  background: rgba(201, 162, 39, .09);
+  border-radius: 0 6px 6px 0;
+}
+
+.draw-notice p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  color: var(--brass);
+}
+
+.draw-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.draw-pending {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 2px solid var(--dim);
+  background: rgba(90, 100, 120, .09);
+  border-radius: 0 6px 6px 0;
+}
+
+.draw-pending p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--slate);
+}
+
 /* ---------- 記譜表 ---------- */
 
 .sheet {

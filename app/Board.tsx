@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess, type Square } from 'chess.js';
-import { playMove, resign, takeback } from './actions';
+import { playMove, resign, takeback, offerDraw, respondToDraw } from './actions';
 
 // react-chessboard v4 的 API。v5 改成單一 options prop，寫法完全不同 ——
 // package.json 已鎖 ^4，升級前先回來看這個檔案。
@@ -16,6 +16,8 @@ type Props = {
   opponentName: string;
   myTakebacksLeft: number;
   lastMoveUci: string | null;
+  pendingDrawOfferBy: string | null;
+  myId: string;
 };
 
 type PossibleMove = {
@@ -46,6 +48,8 @@ export default function Board({
   opponentName,
   myTakebacksLeft,
   lastMoveUci,
+  pendingDrawOfferBy,
+  myId,
 }: Props) {
   // 樂觀更新：棋子先動，server 拒絕才彈回去。
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
@@ -176,6 +180,29 @@ export default function Board({
     });
   }
 
+  function onOfferDraw() {
+    if (!confirm('確定提出和棋？')) return;
+    startTransition(async () => {
+      const res = await offerDraw(gameId);
+      if (!res.ok) setError(res.message);
+    });
+  }
+
+  function onAcceptDraw() {
+    if (!confirm('確定接受和棋？')) return;
+    startTransition(async () => {
+      const res = await respondToDraw(gameId, true);
+      if (!res.ok) setError(res.message);
+    });
+  }
+
+  function onDeclineDraw() {
+    startTransition(async () => {
+      const res = await respondToDraw(gameId, false);
+      if (!res.ok) setError(res.message);
+    });
+  }
+
   /** 計算格子高亮樣式 */
   const customSquareStyles: Record<string, React.CSSProperties> = {};
 
@@ -253,6 +280,38 @@ export default function Board({
         </p>
       )}
 
+      {/* 對方提和：顯示通知與回應按鈕 */}
+      {pendingDrawOfferBy && pendingDrawOfferBy !== myId && (
+        <div className="draw-notice">
+          <p>
+            <strong>{opponentName}</strong> 提出和棋
+          </p>
+          <div className="draw-actions">
+            <button
+              className="btn-ghost"
+              onClick={onAcceptDraw}
+              disabled={pending}
+            >
+              接受
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={onDeclineDraw}
+              disabled={pending}
+            >
+              拒絕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 我方提和：顯示等待狀態 */}
+      {pendingDrawOfferBy && pendingDrawOfferBy === myId && (
+        <div className="draw-pending">
+          <p>已提出和棋，等待 {opponentName} 回應</p>
+        </div>
+      )}
+
       <div className="replay">
         <button
           className="btn-ghost"
@@ -265,6 +324,14 @@ export default function Board({
           }
         >
           悔棋 ({myTakebacksLeft})
+        </button>
+        <button
+          className="btn-ghost"
+          onClick={onOfferDraw}
+          disabled={pending || pendingDrawOfferBy !== null}
+          title={pendingDrawOfferBy ? '已有待處理的提和' : '提出和棋'}
+        >
+          提和
         </button>
         <button className="btn-ghost" onClick={onResign} disabled={pending}>
           認輸

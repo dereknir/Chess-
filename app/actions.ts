@@ -334,6 +334,125 @@ export async function takeback(gameId: number): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * 提出和棋。
+ *
+ * 限制：
+ * - 只能在進行中的棋局提和
+ * - 對方已經提和時不能重複提和（先回應再說）
+ */
+export async function offerDraw(gameId: number): Promise<ActionResult> {
+  const me = await requirePlayer();
+
+  try {
+    await sql.begin(async (tx) => {
+      const [game] = await tx<Game[]>`
+        select * from games where id = ${gameId} for update
+      `;
+
+      if (!game) throw new UserError('找不到這盤棋。');
+      if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+
+      // 檢查是否已經有待處理的提和
+      if (game.pending_draw_offer_by !== null) {
+        if (game.pending_draw_offer_by === me.id) {
+          throw new UserError('你已經提出和棋了，等對方回應。');
+        } else {
+          throw new UserError('對方已經提出和棋了，請先回應。');
+        }
+      }
+
+      await tx`
+        update games set
+          pending_draw_offer_by = ${me.id},
+          updated_at = now()
+        where id = ${gameId}
+      `;
+    });
+  } catch (err) {
+    if (err instanceof UserError) return { ok: false, message: err.message };
+    console.error('[offerDraw]', err);
+    return { ok: false, message: '提和失敗，再試一次。' };
+  }
+
+  // Pusher 推播：對方頁面立刻顯示提和通知
+  after(() => {
+    pusher.trigger('game-updates', 'move', { gameId }).catch((err) => {
+      console.error('[pusher offerDraw]', err);
+    });
+  });
+
+  revalidatePath('/');
+  return { ok: true };
+}
+
+/**
+ * 回應提和：接受或拒絕。
+ *
+ * @param accept - true 接受（和棋），false 拒絕（繼續下）
+ */
+export async function respondToDraw(
+  gameId: number,
+  accept: boolean,
+): Promise<ActionResult> {
+  const me = await requirePlayer();
+
+  try {
+    await sql.begin(async (tx) => {
+      const [game] = await tx<Game[]>`
+        select * from games where id = ${gameId} for update
+      `;
+
+      if (!game) throw new UserError('找不到這盤棋。');
+      if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+
+      if (game.pending_draw_offer_by === null) {
+        throw new UserError('目前沒有待處理的提和。');
+      }
+
+      if (game.pending_draw_offer_by === me.id) {
+        throw new UserError('不能回應自己的提和。');
+      }
+
+      if (accept) {
+        // 接受和棋
+        await tx`
+          update games set
+            status = 'draw',
+            result = '1/2-1/2',
+            winner_id = null,
+            pending_draw_offer_by = null,
+            updated_at = now(),
+            ended_at = now()
+          where id = ${gameId}
+        `;
+      } else {
+        // 拒絕提和，清空待處理狀態
+        await tx`
+          update games set
+            pending_draw_offer_by = null,
+            updated_at = now()
+          where id = ${gameId}
+        `;
+      }
+    });
+  } catch (err) {
+    if (err instanceof UserError) return { ok: false, message: err.message };
+    console.error('[respondToDraw]', err);
+    return { ok: false, message: '回應提和失敗，再試一次。' };
+  }
+
+  // Pusher 推播
+  after(() => {
+    pusher.trigger('game-updates', 'move', { gameId }).catch((err) => {
+      console.error('[pusher respondToDraw]', err);
+    });
+  });
+
+  revalidatePath('/');
+  return { ok: true };
+}
+
 // ---------- helpers ----------
 
 class UserError extends Error {}
