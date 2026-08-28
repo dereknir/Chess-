@@ -452,3 +452,80 @@ input[type="text"]:focus, textarea:focus {
   color: var(--dim);
   margin-left: 6px;
 }
+
+/* ---------- 升變選單 ---------- */
+
+.promotion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 18, 28, 0.92);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.promotion-modal {
+  background: var(--felt);
+  border: 1px solid var(--brass);
+  border-radius: var(--r);
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  min-width: 320px;
+}
+
+.promotion-modal h3 {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 18px;
+  text-align: center;
+  color: var(--brass);
+  letter-spacing: 0.1em;
+}
+
+.promotion-choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.promotion-choices button {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--felt-2);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: var(--chalk);
+  font-size: 48px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.promotion-choices button span {
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--slate);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.promotion-choices button:hover {
+  border-color: var(--brass);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.promotion-choices button:hover span {
+  color: var(--brass);
+}
+
+.promotion-modal > .btn-ghost {
+  width: 100%;
+  text-align: center;
+}

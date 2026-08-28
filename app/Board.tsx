@@ -56,26 +56,58 @@ export default function Board({
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<PossibleMove[]>([]);
 
+  // 升變選單：等待用戶選擇升變子種
+  const [promotionMove, setPromotionMove] = useState<{
+    from: string;
+    to: string;
+  } | null>(null);
+
   const shown = optimisticFen ?? fen;
   const canMove = isMyTurn && !pending;
 
-  /** 執行走子（由點選或拖放觸發） */
-  function executeMove(from: string, to: string) {
+  /** 偵測是否為升變走法 */
+  function isPromotionMove(from: string, to: string): boolean {
+    const local = new Chess(fen);
+    const piece = local.get(from as Square);
+    if (!piece || piece.type !== 'p') return false;
+
+    const toRank = to[1];
+    return toRank === '1' || toRank === '8';
+  }
+
+  /** 執行走子（可指定升變子種） */
+  function executeMove(
+    from: string,
+    to: string,
+    promotionPiece?: 'q' | 'r' | 'b' | 'n'
+  ) {
+    // 如果是升變且沒指定子種 → 先顯示選單
+    if (!promotionPiece && isPromotionMove(from, to)) {
+      setPromotionMove({ from, to });
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      return true;
+    }
+
     // 本地先驗一次，明顯不合法的走法連請求都不用發出去。
     const local = new Chess(fen);
-    let promotion: 'q' | undefined;
+    let promotion: 'q' | 'r' | 'b' | 'n' | undefined;
     try {
-      const m = local.move({ from, to, promotion: 'q' });
-      promotion = m.promotion ? 'q' : undefined;
+      const m = local.move({
+        from,
+        to,
+        promotion: promotionPiece || 'q',
+      });
+      promotion = m.promotion ? (promotionPiece || 'q') : undefined;
     } catch {
       return false;
     }
 
     setError(null);
     setOptimisticFen(local.fen());
-    // 走完清掉選取狀態
     setSelectedSquare(null);
     setPossibleMoves([]);
+    setPromotionMove(null);
 
     startTransition(async () => {
       const res = await playMove({
@@ -85,7 +117,6 @@ export default function Board({
         promotion,
         expectedPly: plyCount,
       });
-      // 成功或失敗都把樂觀狀態丟掉：成功的話 revalidate 已經送回新的 fen。
       setOptimisticFen(null);
       if (!res.ok) setError(res.message);
     });
@@ -239,6 +270,54 @@ export default function Board({
           認輸
         </button>
       </div>
+
+      {promotionMove && (
+        <div className="promotion-overlay">
+          <div className="promotion-modal">
+            <h3>選擇升變棋子</h3>
+            <div className="promotion-choices">
+              <button
+                onClick={() =>
+                  executeMove(promotionMove.from, promotionMove.to, 'q')
+                }
+              >
+                {myColor === 'w' ? '♕' : '♛'}
+                <span>皇后</span>
+              </button>
+              <button
+                onClick={() =>
+                  executeMove(promotionMove.from, promotionMove.to, 'r')
+                }
+              >
+                {myColor === 'w' ? '♖' : '♜'}
+                <span>城堡</span>
+              </button>
+              <button
+                onClick={() =>
+                  executeMove(promotionMove.from, promotionMove.to, 'b')
+                }
+              >
+                {myColor === 'w' ? '♗' : '♝'}
+                <span>主教</span>
+              </button>
+              <button
+                onClick={() =>
+                  executeMove(promotionMove.from, promotionMove.to, 'n')
+                }
+              >
+                {myColor === 'w' ? '♘' : '♞'}
+                <span>騎士</span>
+              </button>
+            </div>
+            <button
+              className="btn-ghost"
+              onClick={() => setPromotionMove(null)}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
