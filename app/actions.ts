@@ -500,6 +500,45 @@ export async function updateBoardTheme(
     return { ok: false, message: '更新主題失敗，再試一次。' };
   }
 
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
+ * 發送聊天訊息。
+ */
+export async function sendChatMessage(
+  gameId: number,
+  message: string,
+): Promise<ActionResult> {
+  const me = await requirePlayer();
+
+  const trimmedMessage = message.trim();
+  if (!trimmedMessage) {
+    return { ok: false, message: '訊息不能空白。' };
+  }
+
+  if (trimmedMessage.length > 500) {
+    return { ok: false, message: '訊息太長（最多 500 字）。' };
+  }
+
+  try {
+    await sql`
+      insert into chat_messages (game_id, player_id, message)
+      values (${gameId}, ${me.id}, ${trimmedMessage})
+    `;
+  } catch (err) {
+    console.error('[sendChatMessage]', err);
+    return { ok: false, message: '發送訊息失敗，再試一次。' };
+  }
+
+  // Pusher 推播：對方立刻看到新訊息
+  after(() => {
+    pusher.trigger('game-updates', 'chat', { gameId }).catch((err) => {
+      console.error('[pusher sendChatMessage]', err);
+    });
+  });
+
   revalidatePath('/');
   revalidatePath('/game/[id]');
   return { ok: true };

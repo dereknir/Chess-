@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { BOARD_THEMES } from '@/lib/themes';
 import { updateBoardTheme } from './actions';
 
@@ -13,6 +14,7 @@ export default function ThemeSelector({ currentTheme }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // 點擊外部關閉選單
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function ThemeSelector({ currentTheme }: Props) {
       const res = await updateBoardTheme(themeId);
       if (res.ok) {
         setIsOpen(false);
+        router.refresh(); // 強制刷新頁面資料
       } else {
         setError(res.message);
       }
