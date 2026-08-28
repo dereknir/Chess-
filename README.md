@@ -26,6 +26,12 @@ DATABASE_URL=postgres://...
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/.../...
 APP_URL=https://your-app.vercel.app
 
+# Pusher Channels（即時推播：對方下完棋立刻刷新頁面）
+PUSHER_APP_ID=...
+PUSHER_SECRET=...
+NEXT_PUBLIC_PUSHER_KEY=...
+NEXT_PUBLIC_PUSHER_CLUSTER=ap1
+
 # 選配：推播裡的棋盤圖
 # 不設 → 用 chessvision.ai 的 fen2image（第三方）
 # BOARD_IMAGE=off              → 不放圖，只留棋步和連結
@@ -44,13 +50,15 @@ lib/db.ts               連線與型別
 lib/auth.ts             秘密網址認證：token → cookie
 lib/chess.ts            chess.js 包裝：走子、終局判定、局面比對、PGN 產生
 lib/discord.ts          webhook 推播
-app/actions.ts          playMove / newGame / resign
+lib/pusher.ts           Pusher 後端實例（即時推播）
+app/actions.ts          playMove / newGame / resign / takeback
 app/enter/route.ts      秘密網址的落點：驗 token、寫 cookie、導回首頁
+app/RealtimeRefresh.tsx 訂閱 Pusher 事件，對方下完立刻刷新
 app/layout.tsx          外框與導覽
 app/globals.css         全部樣式（沒有用 Tailwind）
 app/page.tsx            目前這盤，或開局表單
 app/NewGame.tsx         開局表單（含擺子編輯器）
-app/Board.tsx           可下棋的棋盤
+app/Board.tsx           可下棋的棋盤（含落點提示、悔棋按鈕、步數/子數顯示）
 app/MoveLog.tsx         記譜表
 app/PgnButton.tsx       複製 PGN
 app/history/page.tsx    歷史對局與戰績
@@ -94,11 +102,18 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 
 **分析不自己做。** `buildPgn()` 產生的 PGN 直接貼到 Lichess 的 Import game，就拿到 Stockfish 標好的失誤與準確率。自己跑引擎划不來。
 
+## 已完成功能
+
+- ✅ **即時推播**：對方下完棋 < 1 秒自動刷新頁面（Pusher Channels）
+- ✅ **悔棋**：每人每局 2 次，刪掉自己剛下的步
+- ✅ **落點提示**：點選棋子顯示合法走法（綠點 = 普通走法、紅環 = 吃子）
+- ✅ **步數與子數顯示**：即時顯示目前第幾步、雙方剩餘棋子數
+- ✅ **三次重複和棋判定**：自動比對歷史局面，滿 3 次宣告和棋
+
 ## 待實裝
 
-- [ ] 提和（認輸已經有了）
-- [ ] 升變選子（目前一律升后，99% 的情況都對）
-- [ ] 「上一步」高亮
-- [ ] 悔棋
-- [ ] 棋子可走格提示（點起一顆子，把它能走的格子標出來）
-- [ ] 用 `moves` 表做統計頁：平均思考時間、各自的失誤分佈
+- [ ] **「上一步」高亮**：把剛走的那步起點和終點標出來（視覺回饋）
+- [ ] **提和功能**：雙方同意和棋（認輸已經有了）
+- [ ] **升變選子**：兵升變時彈出選單選擇子種（目前一律升后）
+- [ ] **統計頁面**：用 `moves` 表做個人統計：平均思考時間、最快/最慢的棋、吃子分佈
+- [ ] **棋局備註**：每局可以加個簡短註解（例如「某某開局」「紀念局」）
