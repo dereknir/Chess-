@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { BOARD_THEMES } from '@/lib/themes';
 import { updateBoardTheme } from './actions';
 
@@ -12,6 +12,21 @@ export default function ThemeSelector({ currentTheme }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 點擊外部關閉選單
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   function handleSelect(themeId: string) {
     setError(null);
@@ -28,13 +43,13 @@ export default function ThemeSelector({ currentTheme }: Props) {
   const selectedTheme = BOARD_THEMES.find((t) => t.id === currentTheme) || BOARD_THEMES[0];
 
   return (
-    <div className="theme-selector">
+    <div className="theme-selector" ref={menuRef}>
       <button
         className="btn-ghost theme-trigger"
         onClick={() => setIsOpen(!isOpen)}
         disabled={pending}
       >
-        🎨 {selectedTheme.name}
+        🎨 {pending ? '更新中…' : selectedTheme.name}
       </button>
 
       {isOpen && (
