@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import sql, { type Game } from '@/lib/db';
 import { requirePlayer } from '@/lib/auth';
+import { pusher } from '@/lib/pusher';
 import {
   applyMove,
   countRepetitions,
@@ -153,6 +154,13 @@ export async function playMove(input: {
 
   // 推播放在 response 之後，不拖慢落子的體感。需要 Next.js 15+。
   if (notice) after(() => notifyMove(notice!));
+
+  // Pusher 即時推播：對方頁面立刻刷新
+  after(() => {
+    pusher.trigger('game-updates', 'move', { gameId: input.gameId }).catch((err) => {
+      console.error('[pusher]', err);
+    });
+  });
 
   revalidatePath('/');
   return { ok: true };

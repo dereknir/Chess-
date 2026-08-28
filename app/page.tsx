@@ -6,6 +6,7 @@ import Board from './Board';
 import NewGame from './NewGame';
 import MoveLog from './MoveLog';
 import PgnButton from './PgnButton';
+import RealtimeRefresh from './RealtimeRefresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,7 @@ export default async function Page({
 
   return (
     <main>
+      <RealtimeRefresh gameId={game.id} enabled={game.status === 'ongoing'} />
       <div className="game">
         <Board
           gameId={game.id}
