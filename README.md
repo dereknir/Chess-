@@ -57,6 +57,9 @@ app/enter/route.ts       秘密網址的落點：驗 token、寫 cookie、導回
 app/RealtimeRefresh.tsx  訂閱 Pusher 事件，對方下完立刻刷新
 app/layout.tsx           外框與導覽
 app/globals.css          全部樣式（沒有用 Tailwind）
+app/icon.png             favicon：貓頭 + 深色圓角底
+app/apple-icon.png       iOS 加到主畫面的圖示
+public/rose.png          header 的貓：暖白線稿、透明底
 app/page.tsx             目前這盤，或開局表單
 app/NewGame.tsx          開局表單（含擺子編輯器）
 app/Board.tsx            可下棋的棋盤（含落點提示、上一步高亮、悔棋、提和）
@@ -105,6 +108,8 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 **手擺局面會清掉入堡權和過路兵格。** 手動擺出來的棋盤沒有「王有沒有動過」這段歷史，保留原本的 `KQkq` 會讓系統允許不該有的入堡。
 
 **推播用 `after()`。** 落子的 response 先回，Discord 請求晚一步跑。推播失敗只記 log，不會讓落子失敗。
+
+**貓是暖白線稿，favicon 自己帶底色。** 原圖是黑線畫在白底上，站上是深色的，所以線條重新上成 `--chalk` 的暖白、白底去掉，米色斑紋保留。header 那隻直接疊在深色底上就好；favicon 不行——分頁列的顏色不歸網站控制，暖白線條在淺色分頁列上會消失，所以圖示自己帶一塊 `--felt` 的深色圓角底，深淺兩種分頁列都看得見。favicon 另外只裁頭部並加粗線條，整隻貓縮到 16px 只會是一團灰。
 
 **分析不自己做。** `buildPgn()` 產生的 PGN 直接貼到 Lichess 的 Import game，就拿到 Stockfish 標好的失誤與準確率。自己跑引擎划不來。
 

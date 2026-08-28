@@ -55,7 +55,7 @@ a { color: inherit; }
 
 .topbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 18px;
@@ -64,11 +64,21 @@ a { color: inherit; }
 }
 
 .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--serif);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: .14em;
   margin: 0;
+}
+
+/* 貓是暖白線稿、透明底，直接疊在深色底上就好，不需要濾鏡 */
+.mark {
+  width: 39px;
+  height: 34px;
+  flex: none;
 }
 
 .topbar nav {

@@ -26,7 +26,11 @@ export default async function RootLayout({
       <body>
         <div className="shell">
           <header className="topbar">
-            <h1 className="wordmark">自食棋力</h1>
+            <h1 className="wordmark">
+              {/* alt 留空：這是裝飾，站名的意思由旁邊的字負責 */}
+              <img src="/rose.png" alt="" className="mark" width={39} height={34} />
+              自食棋力
+            </h1>
             <nav>
               <a href="/">目前這盤</a>
               <a href="/history">歷史</a>
