@@ -30,6 +30,7 @@ export default async function RootLayout({
             <nav>
               <a href="/">目前這盤</a>
               <a href="/history">歷史</a>
+              <a href="/stats">統計</a>
               {me && <span className="who">{me.display_name}</span>}
             </nav>
           </header>

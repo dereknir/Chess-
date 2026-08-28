@@ -437,6 +437,81 @@ input[type="text"]:focus, textarea:focus {
 .empty h1 { font-family: var(--serif); font-size: 22px; margin: 0 0 10px; }
 .empty p { color: var(--slate); font-size: 14px; margin: 0; line-height: 1.7; }
 
+/* ---------- 統計頁面 ---------- */
+
+.page-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  letter-spacing: 0.08em;
+}
+
+.page-lede {
+  color: var(--slate);
+  font-size: 14px;
+  margin: 0 0 32px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: var(--felt);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 20px 24px;
+}
+
+.stat-card h2 {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0 0 16px;
+  color: var(--slate);
+  text-transform: uppercase;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(47, 57, 80, 0.3);
+}
+
+.stat-row:last-child {
+  border-bottom: 0;
+}
+
+.stat-row .label {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.stat-row .value {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--chalk);
+  font-weight: 600;
+}
+
+.stat-row .value.win {
+  color: #6fb36f;
+}
+
+.stat-row .value.loss {
+  color: var(--ember);
+}
+
+.stat-row .value.draw {
+  color: var(--slate);
+}
+
 /* ---------- 重播控制 ---------- */
 
 .replay {
