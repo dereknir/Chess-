@@ -6,6 +6,7 @@ const sql = postgres(process.env.DATABASE_URL!, {
   max: 1,
   prepare: false,
   idle_timeout: 20,
+  ssl: 'require',
 });
 
 export default sql;
@@ -48,5 +49,13 @@ export type Move = {
   is_check: boolean;
   is_capture: boolean;
   thinking_ms: number | null;
+  created_at: Date;
+};
+
+export type ChatMessage = {
+  id: number;
+  game_id: number;
+  player_id: string;
+  message: string;
   created_at: Date;
 };
