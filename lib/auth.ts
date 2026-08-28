@@ -19,7 +19,7 @@ export async function currentPlayer(
   if (!token) return null;
 
   const [player] = await sql<Player[]>`
-    select id, display_name, token, discord_id
+    select id, display_name, token, discord_id, board_theme
     from players
     where token = ${token}
   `;
