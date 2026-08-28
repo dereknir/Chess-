@@ -28,6 +28,8 @@ export type Game = {
   status: 'ongoing' | 'checkmate' | 'stalemate' | 'draw' | 'resigned';
   result: string | null;
   winner_id: string | null;
+  white_takebacks_left: number;
+  black_takebacks_left: number;
   created_at: Date;
   updated_at: Date;
   ended_at: Date | null;

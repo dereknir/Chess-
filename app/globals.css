@@ -135,6 +135,15 @@ a { color: inherit; }
   100% { box-shadow: 0 0 0 0 rgba(201, 162, 39, 0); }
 }
 
+/* 棋局資訊：步數、子數 */
+.game-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .status[data-mine="true"] .dot { animation: none; }
 }

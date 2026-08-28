@@ -228,6 +228,112 @@ export async function resign(gameId: number): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * 悔棋：刪掉自己剛下的最後一步。
+ *
+ * 限制：
+ * - 每人每局 2 次
+ * - 必須是自己剛下完、輪到對方的狀態
+ * - 最後一步必須是自己下的
+ */
+export async function takeback(gameId: number): Promise<ActionResult> {
+  const me = await requirePlayer();
+
+  try {
+    await sql.begin(async (tx) => {
+      const [game] = await tx<Game[]>`
+        select * from games where id = ${gameId} for update
+      `;
+
+      if (!game) throw new UserError('找不到這盤棋。');
+      if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+
+      const myColor = game.white_id === me.id ? 'w' : 'b';
+      const takebacksLeft =
+        myColor === 'w' ? game.white_takebacks_left : game.black_takebacks_left;
+
+      // 檢查 1: 還有沒有次數
+      if (takebacksLeft <= 0) {
+        throw new UserError('悔棋次數已用完（每人每局限 2 次）。');
+      }
+
+      // 檢查 2: 必須「剛下完輪到對方」（turn 是對方）
+      if (game.turn === myColor) {
+        throw new UserError('還輪到你，不需要悔棋。');
+      }
+
+      // 檢查 3: 最後一步是我下的
+      const [lastMove] = await tx<{ ply: number; player_id: string }[]>`
+        select ply, player_id from moves
+        where game_id = ${gameId}
+        order by ply desc
+        limit 1
+      `;
+
+      if (!lastMove) {
+        throw new UserError('還沒走過任何一步，無法悔棋。');
+      }
+
+      if (lastMove.player_id !== me.id) {
+        throw new UserError('最後一步不是你下的，無法悔棋。');
+      }
+
+      // 刪掉那步
+      await tx`
+        delete from moves
+        where game_id = ${gameId} and ply = ${lastMove.ply}
+      `;
+
+      // 倒回 FEN（從前一步的 fen_after 撈，沒有就用 initial_fen）
+      const [prevMove] = await tx<{ fen_after: string }[]>`
+        select fen_after from moves
+        where game_id = ${gameId}
+        order by ply desc
+        limit 1
+      `;
+
+      const rewindFen = prevMove?.fen_after ?? game.initial_fen;
+
+      // 更新棋局：倒回 FEN、輪到我、減少 ply、扣掉悔棋次數
+      if (myColor === 'w') {
+        await tx`
+          update games set
+            current_fen = ${rewindFen},
+            turn = 'w',
+            ply_count = ${game.ply_count - 1},
+            white_takebacks_left = ${game.white_takebacks_left - 1},
+            updated_at = now()
+          where id = ${gameId}
+        `;
+      } else {
+        await tx`
+          update games set
+            current_fen = ${rewindFen},
+            turn = 'b',
+            ply_count = ${game.ply_count - 1},
+            black_takebacks_left = ${game.black_takebacks_left - 1},
+            updated_at = now()
+          where id = ${gameId}
+        `;
+      }
+    });
+  } catch (err) {
+    if (err instanceof UserError) return { ok: false, message: err.message };
+    console.error('[takeback]', err);
+    return { ok: false, message: '悔棋失敗，再試一次。' };
+  }
+
+  // Pusher 推播：對方頁面立刻刷新
+  after(() => {
+    pusher.trigger('game-updates', 'move', { gameId }).catch((err) => {
+      console.error('[pusher takeback]', err);
+    });
+  });
+
+  revalidatePath('/');
+  return { ok: true };
+}
+
 // ---------- helpers ----------
 
 class UserError extends Error {}

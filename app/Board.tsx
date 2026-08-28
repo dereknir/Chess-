@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess, type Square } from 'chess.js';
-import { playMove, resign } from './actions';
+import { playMove, resign, takeback } from './actions';
 
 // react-chessboard v4 的 API。v5 改成單一 options prop，寫法完全不同 ——
 // package.json 已鎖 ^4，升級前先回來看這個檔案。
@@ -14,12 +14,27 @@ type Props = {
   isMyTurn: boolean;
   plyCount: number;
   opponentName: string;
+  myTakebacksLeft: number;
 };
 
 type PossibleMove = {
   to: Square;
   isCapture: boolean;
 };
+
+/** 從 FEN 計算雙方剩餘子數（不含王） */
+function countPieces(fen: string): { white: number; black: number } {
+  const position = fen.split(' ')[0]; // 只看棋盤部分
+  let white = 0;
+  let black = 0;
+
+  for (const char of position) {
+    if (char >= 'A' && char <= 'Z' && char !== 'K') white++; // 白方（不含王）
+    if (char >= 'a' && char <= 'z' && char !== 'k') black++; // 黑方（不含王）
+  }
+
+  return { white, black };
+}
 
 export default function Board({
   gameId,
@@ -28,6 +43,7 @@ export default function Board({
   isMyTurn,
   plyCount,
   opponentName,
+  myTakebacksLeft,
 }: Props) {
   // 樂觀更新：棋子先動，server 拒絕才彈回去。
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
@@ -119,6 +135,14 @@ export default function Board({
     });
   }
 
+  function onTakeback() {
+    if (!confirm('確定悔棋？（剩餘 ' + myTakebacksLeft + ' 次）')) return;
+    startTransition(async () => {
+      const res = await takeback(gameId);
+      if (!res.ok) setError(res.message);
+    });
+  }
+
   /** 計算格子高亮樣式 */
   const customSquareStyles: Record<string, React.CSSProperties> = {};
 
@@ -147,6 +171,10 @@ export default function Board({
     }
   }
 
+  // 計算雙方剩餘子數
+  const pieces = countPieces(shown);
+  const canTakeback = !isMyTurn && !pending && myTakebacksLeft > 0;
+
   return (
     <div className="board-wrap">
       <div className="board-frame">
@@ -167,6 +195,13 @@ export default function Board({
         {isMyTurn ? '輪到你了' : `等 ${opponentName} 落子`}
       </p>
 
+      <div className="game-info">
+        <span>第 {plyCount} 步</span>
+        <span>
+          白 {pieces.white} 子 · 黑 {pieces.black} 子
+        </span>
+      </div>
+
       {error && (
         <p className="error" role="alert">
           {error}
@@ -174,6 +209,18 @@ export default function Board({
       )}
 
       <div className="replay">
+        <button
+          className="btn-ghost"
+          onClick={onTakeback}
+          disabled={!canTakeback}
+          title={
+            myTakebacksLeft > 0
+              ? `悔棋（剩餘 ${myTakebacksLeft} 次）`
+              : '悔棋次數已用完'
+          }
+        >
+          悔棋 ({myTakebacksLeft})
+        </button>
         <button className="btn-ghost" onClick={onResign} disabled={pending}>
           認輸
         </button>
