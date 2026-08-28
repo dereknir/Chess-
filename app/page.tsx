@@ -2,11 +2,13 @@ import { redirect } from 'next/navigation';
 import sql, { type Game, type Move, type Player } from '@/lib/db';
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
+import { getTheme } from '@/lib/themes';
 import Board from './Board';
 import NewGame from './NewGame';
 import MoveLog from './MoveLog';
 import PgnButton from './PgnButton';
 import RealtimeRefresh from './RealtimeRefresh';
+import ThemeSelector from './ThemeSelector';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,10 +75,12 @@ export default async function Page({
   const myTakebacksLeft =
     myColor === 'w' ? game.white_takebacks_left : game.black_takebacks_left;
   const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
+  const theme = getTheme(me.board_theme);
 
   return (
     <main>
       <RealtimeRefresh gameId={game.id} enabled={game.status === 'ongoing'} />
+      <ThemeSelector currentTheme={me.board_theme} />
       <div className="game">
         <Board
           gameId={game.id}
@@ -89,6 +93,7 @@ export default async function Page({
           lastMoveUci={lastMove?.uci ?? null}
           pendingDrawOfferBy={game.pending_draw_offer_by}
           myId={me.id}
+          theme={theme}
         />
 
         <MoveLog

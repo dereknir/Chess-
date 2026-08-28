@@ -637,6 +637,70 @@ input[type="text"]:focus, textarea:focus {
   margin-left: 6px;
 }
 
+/* ---------- 主題選擇器 ---------- */
+
+.theme-selector {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.theme-trigger {
+  font-size: 13px;
+}
+
+.theme-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: var(--felt);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 12px;
+  min-width: 200px;
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  color: var(--chalk);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.theme-option:hover {
+  background: var(--felt-2);
+}
+
+.theme-option[data-selected="true"] {
+  border-color: var(--brass);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.theme-preview {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.theme-square {
+  width: 20px;
+  height: 20px;
+}
+
 /* ---------- 升變選單 ---------- */
 
 .promotion-overlay {

@@ -481,6 +481,30 @@ export async function updateGameNote(
   return { ok: true };
 }
 
+/**
+ * 更新棋盤主題偏好。
+ */
+export async function updateBoardTheme(
+  themeId: string,
+): Promise<ActionResult> {
+  const me = await requirePlayer();
+
+  try {
+    await sql`
+      update players set
+        board_theme = ${themeId}
+      where id = ${me.id}
+    `;
+  } catch (err) {
+    console.error('[updateBoardTheme]', err);
+    return { ok: false, message: '更新主題失敗，再試一次。' };
+  }
+
+  revalidatePath('/');
+  revalidatePath('/game/[id]');
+  return { ok: true };
+}
+
 // ---------- helpers ----------
 
 class UserError extends Error {}

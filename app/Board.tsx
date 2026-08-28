@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess, type Square } from 'chess.js';
 import { playMove, resign, takeback, offerDraw, respondToDraw } from './actions';
+import type { BoardTheme } from '@/lib/themes';
 
 // react-chessboard v4 的 API。v5 改成單一 options prop，寫法完全不同 ——
 // package.json 已鎖 ^4，升級前先回來看這個檔案。
@@ -18,6 +19,7 @@ type Props = {
   lastMoveUci: string | null;
   pendingDrawOfferBy: string | null;
   myId: string;
+  theme: BoardTheme;
 };
 
 type PossibleMove = {
@@ -50,6 +52,7 @@ export default function Board({
   lastMoveUci,
   pendingDrawOfferBy,
   myId,
+  theme,
 }: Props) {
   // 樂觀更新：棋子先動，server 拒絕才彈回去。
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
@@ -256,8 +259,8 @@ export default function Board({
           onSquareClick={onSquareClick}
           boardOrientation={myColor === 'w' ? 'white' : 'black'}
           arePiecesDraggable={canMove}
-          customDarkSquareStyle={{ backgroundColor: '#6b7a94' }}
-          customLightSquareStyle={{ backgroundColor: '#d9dce3' }}
+          customDarkSquareStyle={{ backgroundColor: theme.darkSquare }}
+          customLightSquareStyle={{ backgroundColor: theme.lightSquare }}
           customSquareStyles={customSquareStyles}
         />
       </div>

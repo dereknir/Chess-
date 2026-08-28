@@ -15,6 +15,7 @@ export type Player = {
   display_name: string;
   token: string;
   discord_id: string | null;
+  board_theme: string | null;
 };
 
 export type Game = {
