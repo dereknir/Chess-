@@ -15,6 +15,7 @@ type Props = {
   plyCount: number;
   opponentName: string;
   myTakebacksLeft: number;
+  lastMoveUci: string | null;
 };
 
 type PossibleMove = {
@@ -44,6 +45,7 @@ export default function Board({
   plyCount,
   opponentName,
   myTakebacksLeft,
+  lastMoveUci,
 }: Props) {
   // 樂觀更新：棋子先動，server 拒絕才彈回去。
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
@@ -145,6 +147,18 @@ export default function Board({
 
   /** 計算格子高亮樣式 */
   const customSquareStyles: Record<string, React.CSSProperties> = {};
+
+  // 上一步高亮（起點 + 終點）
+  if (lastMoveUci && lastMoveUci.length >= 4) {
+    const from = lastMoveUci.substring(0, 2);
+    const to = lastMoveUci.substring(2, 4);
+    customSquareStyles[from] = {
+      backgroundColor: 'rgba(255, 255, 100, 0.4)',
+    };
+    customSquareStyles[to] = {
+      backgroundColor: 'rgba(255, 255, 100, 0.6)',
+    };
+  }
 
   // 選中的格子加底色
   if (selectedSquare) {

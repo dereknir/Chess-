@@ -72,6 +72,7 @@ export default async function Page({
   const opponent = myColor === 'w' ? black : white;
   const myTakebacksLeft =
     myColor === 'w' ? game.white_takebacks_left : game.black_takebacks_left;
+  const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
 
   return (
     <main>
@@ -85,6 +86,7 @@ export default async function Page({
           plyCount={game.ply_count}
           opponentName={opponent.display_name}
           myTakebacksLeft={myTakebacksLeft}
+          lastMoveUci={lastMove?.uci ?? null}
         />
 
         <MoveLog
