@@ -268,6 +268,42 @@ a { color: inherit; }
 
 .rows li:last-child .san { color: var(--brass); }
 
+/* 走法分析標記 */
+.rows .class-mark {
+  margin-left: 3px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.rows .san[data-classification="best"] .class-mark {
+  color: #6fb36f;
+}
+
+.rows .san[data-classification="inaccuracy"] .class-mark {
+  color: #c9a227;
+}
+
+.rows .san[data-classification="mistake"] .class-mark {
+  color: #d67a3f;
+}
+
+.rows .san[data-classification="blunder"] .class-mark {
+  color: var(--ember);
+}
+
+.rows .eval {
+  font-size: 10px;
+  color: var(--slate);
+  margin-left: 4px;
+}
+
+.rows .hint-move {
+  display: block;
+  font-size: 10px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
 .sheet .empty-note {
   padding: 22px 18px;
   color: var(--dim);
@@ -299,6 +335,32 @@ a { color: inherit; }
 }
 
 .verdict p { margin: 0; color: var(--slate); font-size: 13.5px; }
+
+/* ---------- 分析按鈕 ---------- */
+
+.analysis-section {
+  margin-bottom: 24px;
+}
+
+.analysis-status {
+  padding: 12px 18px;
+  background: rgba(111, 179, 111, 0.1);
+  border: 1px solid rgba(111, 179, 111, 0.3);
+  border-radius: var(--r);
+  color: #6fb36f;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.error-text {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  background: rgba(196, 85, 61, 0.1);
+  border: 1px solid rgba(196, 85, 61, 0.2);
+  border-radius: 5px;
+  color: var(--ember);
+  font-size: 12px;
+}
 
 /* ---------- 棋局備註 ---------- */
 

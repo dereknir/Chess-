@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
-import sql, { type Game, type Move, type Player } from '@/lib/db';
+import sql, { type Game, type Move, type Player, type MoveAnalysis } from '@/lib/db';
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
 import Replay from './Replay';
 import MoveLog from '../../MoveLog';
 import PgnButton from '../../PgnButton';
 import NoteEditor from './NoteEditor';
+import AnalyzeButton from './AnalyzeButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,10 @@ export default async function GamePage({
 
   const moves = await sql<Move[]>`
     select * from moves where game_id = ${game.id} order by ply
+  `;
+
+  const analysis = await sql<MoveAnalysis[]>`
+    select * from move_analysis where game_id = ${game.id} order by ply
   `;
 
   const [white] = await sql<Player[]>`
@@ -55,6 +60,8 @@ export default async function GamePage({
 
       <NoteEditor gameId={game.id} initialNote={game.note} />
 
+      <AnalyzeButton gameId={game.id} hasAnalysis={analysis.length > 0} />
+
       <div className="game">
         <Replay
           initialFen={game.initial_fen}
@@ -65,6 +72,7 @@ export default async function GamePage({
           moves={moves}
           initialFen={game.initial_fen}
           caption={game.result ?? ''}
+          analysis={analysis.length > 0 ? analysis : undefined}
           footer={<PgnButton pgn={pgn} />}
         />
       </div>

@@ -1,10 +1,11 @@
-import type { Move } from '@/lib/db';
+import type { Move, MoveAnalysis } from '@/lib/db';
 
 type Props = {
   moves: Move[];
   initialFen: string;
   /** 有值就顯示在表頭右側，例如 "Derek 執白" */
   caption?: string;
+  analysis?: MoveAnalysis[];
   footer?: React.ReactNode;
 };
 
@@ -14,8 +15,12 @@ type Props = {
  * 刻意做成紙本的樣子 —— 每列一個回合、白黑兩欄、等寬字。
  * 它本來就是一張表格，用表格的形式呈現不是裝飾，是最誠實的做法。
  */
-export default function MoveLog({ moves, initialFen, caption, footer }: Props) {
+export default function MoveLog({ moves, initialFen, caption, analysis, footer }: Props) {
   const rows = pairByFullmove(moves, initialFen);
+
+  // 建立 ply -> analysis 的映射
+  const analysisMap = new Map<number, MoveAnalysis>();
+  analysis?.forEach(a => analysisMap.set(a.ply, a));
 
   return (
     <aside className="sheet">
@@ -31,8 +36,14 @@ export default function MoveLog({ moves, initialFen, caption, footer }: Props) {
           {rows.map((row) => (
             <li key={row.no}>
               <span className="no">{row.no}</span>
-              <Cell move={row.white} />
-              <Cell move={row.black} />
+              <Cell
+                move={row.white}
+                analysis={row.white ? analysisMap.get(row.white.ply) : undefined}
+              />
+              <Cell
+                move={row.black}
+                analysis={row.black ? analysisMap.get(row.black.ply) : undefined}
+              />
             </li>
           ))}
         </ol>
@@ -43,18 +54,61 @@ export default function MoveLog({ moves, initialFen, caption, footer }: Props) {
   );
 }
 
-function Cell({ move }: { move: Move | null }) {
+function Cell({ move, analysis }: { move: Move | null; analysis?: MoveAnalysis }) {
   if (!move) return <span className="cell" />;
+
+  const classSymbol = getClassificationSymbol(analysis?.classification);
+  const evalText = analysis ? formatEval(analysis.cp, analysis.mate_in) : null;
+
   return (
     <span className="cell">
-      <span className="san" data-check={move.is_check}>
+      <span
+        className="san"
+        data-check={move.is_check}
+        data-classification={analysis?.classification}
+      >
         {move.san}
+        {classSymbol && <span className="class-mark">{classSymbol}</span>}
       </span>
+      {evalText && <span className="eval">{evalText}</span>}
       {move.thinking_ms != null && (
         <span className="think">{formatThinking(move.thinking_ms)}</span>
       )}
+      {analysis && analysis.classification && ['inaccuracy', 'mistake', 'blunder'].includes(analysis.classification) && (
+        <span className="hint-move" title={`建議: ${analysis.best_move_san ?? analysis.best_move}`}>
+          💡 {analysis.best_move_san ?? analysis.best_move}
+        </span>
+      )}
     </span>
   );
+}
+
+function getClassificationSymbol(classification?: string | null): string | null {
+  switch (classification) {
+    case 'best':
+      return '✓';
+    case 'good':
+      return '';
+    case 'inaccuracy':
+      return '?!';
+    case 'mistake':
+      return '?';
+    case 'blunder':
+      return '??';
+    default:
+      return null;
+  }
+}
+
+function formatEval(cp: number | null, mateIn: number | null): string | null {
+  if (mateIn !== null) {
+    return mateIn > 0 ? `+M${mateIn}` : `-M${Math.abs(mateIn)}`;
+  }
+  if (cp !== null) {
+    const pawn = (cp / 100).toFixed(1);
+    return cp >= 0 ? `+${pawn}` : pawn;
+  }
+  return null;
 }
 
 /**

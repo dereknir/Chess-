@@ -59,3 +59,16 @@ export type ChatMessage = {
   message: string;
   created_at: Date;
 };
+
+export type MoveAnalysis = {
+  game_id: number;
+  ply: number;
+  cp: number | null;
+  mate_in: number | null;
+  best_move: string | null;
+  best_move_san: string | null;
+  actual_move_rank: number | null;
+  depth: number | null;
+  classification: 'best' | 'good' | 'inaccuracy' | 'mistake' | 'blunder' | null;
+  created_at: Date;
+};
