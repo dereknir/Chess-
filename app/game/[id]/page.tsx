@@ -62,7 +62,11 @@ export default async function GamePage({
 
       <NoteEditor gameId={game.id} initialNote={game.note} />
 
-      <AnalyzeButton gameId={game.id} hasAnalysis={analysis.length > 0} />
+      <AnalyzeButton
+        gameId={game.id}
+        hasAnalysis={analysis.length > 0}
+        analysisStatus={game.analysis_status}
+      />
 
       <GameReplayPage
         initialFen={game.initial_fen}

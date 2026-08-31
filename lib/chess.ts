@@ -170,3 +170,20 @@ export function buildPgn(opts: {
 
   return `${tags.join('\n')}\n\n${parts.join(' ')} ${opts.result}\n`;
 }
+
+/**
+ * 將 UCI 走法轉換成 SAN 格式
+ */
+export function uciToSan(fen: string, uci: string): string | null {
+  try {
+    const chess = new Chess(fen);
+    const move = chess.move({
+      from: uci.slice(0, 2),
+      to: uci.slice(2, 4),
+      promotion: uci[4] as 'q' | 'r' | 'b' | 'n' | undefined,
+    });
+    return move ? move.san : null;
+  } catch {
+    return null;
+  }
+}

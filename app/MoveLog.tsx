@@ -1,4 +1,5 @@
 import type { Move, MoveAnalysis } from '@/lib/db';
+import EvaluationGraph from './EvaluationGraph';
 
 type Props = {
   moves: Move[];
@@ -28,6 +29,10 @@ export default function MoveLog({ moves, initialFen, caption, analysis, footer }
         <h2>記譜</h2>
         {caption && <span className="meta">{caption}</span>}
       </header>
+
+      {analysis && analysis.length > 0 && (
+        <EvaluationGraph analysis={analysis} />
+      )}
 
       {rows.length === 0 ? (
         <p className="empty-note">還沒有人落子。</p>
@@ -62,18 +67,20 @@ function Cell({ move, analysis }: { move: Move | null; analysis?: MoveAnalysis }
 
   return (
     <span className="cell">
-      <span
-        className="san"
-        data-check={move.is_check}
-        data-classification={analysis?.classification}
-      >
-        {move.san}
-        {classSymbol && <span className="class-mark">{classSymbol}</span>}
+      <span className="move-line">
+        <span
+          className="san"
+          data-check={move.is_check}
+          data-classification={analysis?.classification}
+        >
+          {move.san}
+          {classSymbol && <span className="class-mark">{classSymbol}</span>}
+        </span>
+        {move.thinking_ms != null && (
+          <span className="think">{formatThinking(move.thinking_ms)}</span>
+        )}
       </span>
       {evalText && <span className="eval">{evalText}</span>}
-      {move.thinking_ms != null && (
-        <span className="think">{formatThinking(move.thinking_ms)}</span>
-      )}
       {analysis && analysis.classification && ['inaccuracy', 'mistake', 'blunder'].includes(analysis.classification) && (
         <span className="hint-move" title={`建議: ${analysis.best_move_san ?? analysis.best_move}`}>
           💡 {analysis.best_move_san ?? analysis.best_move}

@@ -56,10 +56,10 @@ export async function fetchCloudEval(
 
 /**
  * Rate-limited 版本的 fetchCloudEval
- * 每次呼叫間隔至少 600ms，避免觸發 Lichess rate limit
+ * 每次呼叫間隔至少 1500ms，避免觸發 Lichess rate limit
  */
 let lastCallTime = 0;
-const MIN_INTERVAL = 600; // ms
+const MIN_INTERVAL = 1500; // ms
 
 export async function fetchCloudEvalWithRateLimit(
   fen: string,

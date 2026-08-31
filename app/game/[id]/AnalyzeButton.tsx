@@ -1,35 +1,73 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { analyzeGame } from '@/app/actions';
 
 type Props = {
   gameId: number;
   hasAnalysis: boolean;
+  analysisStatus: string | null;
 };
 
-export default function AnalyzeButton({ gameId, hasAnalysis }: Props) {
+export default function AnalyzeButton({ gameId, hasAnalysis, analysisStatus }: Props) {
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [analyzing, setAnalyzing] = useState(analysisStatus === 'analyzing');
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const eventSourceRef = useRef<EventSource | null>(null);
   const router = useRouter();
 
-  function handleAnalyze() {
-    console.log('[AnalyzeButton] handleAnalyze called, gameId:', gameId);
+  // 如果頁面載入時正在分析，重新建立連接
+  useEffect(() => {
+    if (analysisStatus === 'analyzing') {
+      connectToAnalysis();
+    }
+  }, []);
+
+  function connectToAnalysis() {
     setError(null);
-    startTransition(async () => {
-      console.log('[AnalyzeButton] Starting analysis...');
-      const res = await analyzeGame(gameId);
-      console.log('[AnalyzeButton] Analysis result:', res);
-      if (res.ok) {
-        router.refresh();
-      } else {
-        setError(res.message);
-      }
+    setAnalyzing(true);
+    setProgress({ current: 0, total: 0 });
+
+    // 創建 EventSource 連接
+    const eventSource = new EventSource(`/api/analyze/${gameId}`);
+    eventSourceRef.current = eventSource;
+
+    eventSource.addEventListener('start', (e) => {
+      const data = JSON.parse(e.data);
+      setProgress({ current: 0, total: data.total });
     });
+
+    eventSource.addEventListener('progress', (e) => {
+      const data = JSON.parse(e.data);
+      setProgress({ current: data.current, total: data.total });
+    });
+
+    eventSource.addEventListener('complete', (e) => {
+      eventSource.close();
+      setAnalyzing(false);
+      router.refresh();
+    });
+
+    eventSource.addEventListener('error', (e: any) => {
+      const data = e.data ? JSON.parse(e.data) : null;
+      setError(data?.message || '分析失敗');
+      eventSource.close();
+      setAnalyzing(false);
+    });
+
+    eventSource.onerror = () => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        eventSource.close();
+        setAnalyzing(false);
+      }
+    };
   }
 
-  if (hasAnalysis) {
+  function handleAnalyze() {
+    connectToAnalysis();
+  }
+
+  if (hasAnalysis || analysisStatus === 'completed') {
     return (
       <div className="analysis-status">
         ✅ 已分析
@@ -37,20 +75,32 @@ export default function AnalyzeButton({ gameId, hasAnalysis }: Props) {
     );
   }
 
+  const progressPercent = progress.total > 0
+    ? Math.round((progress.current / progress.total) * 100)
+    : 0;
+
   return (
     <div className="analysis-section">
       <button
         className="btn"
         onClick={handleAnalyze}
-        disabled={pending}
+        disabled={analyzing}
       >
-        {pending ? '分析中...' : '🔍 Stockfish 分析'}
+        {analyzing ? '分析中...' : '🔍 Stockfish 分析'}
       </button>
       {error && <p className="error-text">{error}</p>}
-      {pending && (
-        <p className="hint">
-          正在查詢 Lichess Cloud Eval，大約需要 {Math.ceil(gameId * 0.6)} 秒...
-        </p>
+      {analyzing && (
+        <div className="analysis-progress">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <p className="progress-text">
+            {progress.current} / {progress.total} 步 ({progressPercent}%)
+          </p>
+        </div>
       )}
     </div>
   );
