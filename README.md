@@ -52,7 +52,7 @@ lib/chess.ts             chess.js 包裝：走子、終局判定、局面比對�
 lib/discord.ts           webhook 推播
 lib/pusher.ts            Pusher 後端實例（即時推播）
 lib/themes.ts            棋盤配色定義
-app/actions.ts           playMove / newGame / resign / takeback / 提和 / 備註 / 主題
+app/actions.ts           playMove / newGame / resign / takeback / 提和 / 備註 / 主題 / 聊天
 app/enter/route.ts       秘密網址的落點：驗 token、寫 cookie、導回首頁
 app/RealtimeRefresh.tsx  訂閱 Pusher 事件，對方下完立刻刷新
 app/layout.tsx           外框與導覽
@@ -66,6 +66,7 @@ app/Board.tsx            可下棋的棋盤（含落點提示、上一步高亮�
 app/MoveLog.tsx          記譜表
 app/PgnButton.tsx        複製 PGN
 app/ThemeSelector.tsx    棋盤配色切換
+app/ChatBox.tsx          局中聊天（含即時推播）
 app/history/page.tsx     歷史對局與戰績
 app/stats/page.tsx       個人統計
 app/game/[id]/           單局重播（含備註編輯）
@@ -113,18 +114,20 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 
 **分析不自己做。** `buildPgn()` 產生的 PGN 直接貼到 Lichess 的 Import game，就拿到 Stockfish 標好的失誤與準確率。自己跑引擎划不來。
 
-## 已完成功能
+## 核心功能
 
 - ✅ **即時推播**：對方下完棋 < 1 秒自動刷新頁面（Pusher Channels）
 - ✅ **悔棋**：每人每局 2 次，刪掉自己剛下的步
 - ✅ **落點提示**：點選棋子顯示合法走法（綠點 = 普通走法、紅環 = 吃子）
-- ✅ **步數與子數顯示**：即時顯示目前第幾步、雙方剩餘棋子數
+- ✅ **上一步高亮**：把剛走的那步起點和終點標出來（視覺回饋）
+- ✅ **升變選子**：兵推到底線時彈出選單，選擇升變為皇后、城堡、主教或騎士
+- ✅ **提和功能**：任一方可提出和棋，對方接受或拒絕
 - ✅ **三次重複和棋判定**：自動比對歷史局面，滿 3 次宣告和棋
+- ✅ **步數與子數顯示**：即時顯示目前第幾步、雙方剩餘棋子數
 
-## 待實裝
+## 統計與紀錄
 
-- [ ] **「上一步」高亮**：把剛走的那步起點和終點標出來（視覺回饋）
-- [ ] **提和功能**：雙方同意和棋（認輸已經有了）
-- [ ] **升變選子**：兵升變時彈出選單選擇子種（目前一律升后）
-- [ ] **統計頁面**：用 `moves` 表做個人統計：平均思考時間、最快/最慢的棋、吃子分佈
-- [ ] **棋局備註**：每局可以加個簡短註解（例如「某某開局」「紀念局」）
+- ✅ **個人統計頁面**：戰績（勝/敗/和、勝率）、棋步統計（吃子率、將軍率）、思考時間（平均/最快/最慢）
+- ✅ **棋局備註**：每局可新增/編輯註解（例如「某某開局」「紀念局」）
+- ✅ **歷史對局列表**：顯示所有已結束的棋局與戰績統計
+- ✅ **單局重播**：逐步重播任一歷史對局
