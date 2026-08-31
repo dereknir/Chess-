@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import sql, { type Game, type Move, type Player } from '@/lib/db';
+import sql, { type Game, type Move, type Player, type ChatMessage } from '@/lib/db';
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
 import { getTheme } from '@/lib/themes';
@@ -9,6 +9,7 @@ import MoveLog from './MoveLog';
 import PgnButton from './PgnButton';
 import RealtimeRefresh from './RealtimeRefresh';
 import ThemeSelector from './ThemeSelector';
+import ChatBox from './ChatBox';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,10 @@ export default async function Page({
     select * from moves where game_id = ${game.id} order by ply
   `;
 
+  const chatMessages = await sql<ChatMessage[]>`
+    select * from chat_messages where game_id = ${game.id} order by created_at
+  `;
+
   const [white, black] = await Promise.all([
     one(game.white_id),
     one(game.black_id),
@@ -107,6 +112,13 @@ export default async function Page({
           }
         />
       </div>
+
+      <ChatBox
+        gameId={game.id}
+        myId={me.id}
+        opponentName={opponent.display_name}
+        initialMessages={chatMessages}
+      />
     </main>
   );
 }
