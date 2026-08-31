@@ -1069,7 +1069,7 @@ input[type="text"]:focus, textarea:focus {
   align-items: stretch;
 }
 
-.chat-input {
+input.chat-input {
   flex: 1;
   padding: 11px 14px;
   background: #0c0f18;
@@ -1077,17 +1077,17 @@ input[type="text"]:focus, textarea:focus {
   border-radius: 7px;
   color: var(--chalk);
   font-family: var(--sans);
-  font-size: 16px; /* 修正 iOS 自動放大問題 */
+  font-size: 13.5px; /* 對齊 .chat-message-content */
   resize: none;
   transition: border-color 0.15s;
 }
 
-.chat-input:focus {
+input.chat-input:focus {
   outline: none;
   border-color: var(--brass);
 }
 
-.chat-input:disabled {
+input.chat-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -1267,4 +1267,18 @@ input[type="text"]:focus, textarea:focus {
   padding: 18px;
   border-top: 0; /* 移除斷檔 */
   flex-shrink: 0; /* 不要被壓縮 */
+}
+
+/* ---------- 觸控裝置：避免 iOS Safari focus 時自動放大 ---------- */
+/* Safari 在 font-size < 16px 的輸入框上會縮放整頁，且不會縮回來。
+   桌機維持原本的小字級，只在觸控裝置放大。
+   選擇器列出每一條會被蓋掉的規則，權重才壓得住 .note-editor textarea
+   與 input.chat-input（同為 0-1-1，靠寫在最後取勝）。 */
+@media (pointer: coarse) {
+  input[type="text"],
+  textarea,
+  input.chat-input,
+  .note-editor textarea {
+    font-size: 16px;
+  }
 }
