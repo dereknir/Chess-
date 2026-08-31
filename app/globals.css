@@ -1000,7 +1000,7 @@ input[type="text"]:focus, textarea:focus {
   border-radius: 7px;
   color: var(--chalk);
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 16px; /* 修正 iOS 自動放大問題 */
   resize: none;
   transition: border-color 0.15s;
 }
@@ -1055,4 +1055,139 @@ input[type="text"]:focus, textarea:focus {
   .chat-send-btn {
     width: 100%;
   }
+}
+
+/* ---------- MoveLog/Chat Tabs ---------- */
+
+.move-chat-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 700px; /* 固定高度 */
+  gap: 0; /* 移除子元素之間的間隔 */
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0; /* 不要被壓縮 */
+  background: var(--felt);
+  border-radius: var(--r) var(--r) 0 0;
+  border: 1px solid var(--rule);
+  border-bottom: 0; /* 移除下邊框，避免視覺斷檔 */
+  overflow: hidden;
+  z-index: 1; /* 確保在上層 */
+}
+
+.tab-button {
+  flex: 1;
+  padding: 12px 18px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  color: var(--dim);
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.tab-button:last-child {
+  border-right: 0;
+}
+
+.tab-button:hover:not(.tab-button-active) {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--slate);
+}
+
+.tab-button-active {
+  background: var(--felt-2);
+  color: var(--chalk);
+  cursor: default;
+}
+
+.tab-content {
+  flex: 1; /* 自動填滿剩餘空間：700px - tab-buttons 高度 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-top: 0; /* 移除頂部空隙 */
+  padding: 0; /* 移除所有 padding */
+}
+
+/* 讓 .sheet 在 tab 裡面撐滿 */
+.tab-content .sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 撐滿 tab-content */
+  border-radius: 0 0 var(--r) var(--r);
+  border-top: 0;
+  margin: 0; /* 移除所有 margin */
+}
+
+/* 在 tab 裡隱藏「記譜」標題，只顯示 caption 並置中 */
+.tab-content .sheet header {
+  justify-content: center;
+  border-bottom: 0; /* 移除斷檔 */
+  padding-top: 14px; /* 呼吸空間 */
+  padding-bottom: 14px; /* 保持下方間距 */
+}
+
+.tab-content .sheet h2 {
+  display: none;
+}
+
+.tab-content .sheet .meta {
+  font-size: 13px;
+}
+
+.tab-content .sheet .rows {
+  flex: 1;
+  max-height: none; /* 覆蓋原本的 460px */
+  overflow-y: auto;
+}
+
+/* ChatBox 在 tab 裡面也要撐滿 */
+.tab-content .chat-box {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 撐滿 tab-content */
+  background: var(--felt);
+  border: 0; /* 移除所有邊框，避免斷檔 */
+  border-radius: 0 0 var(--r) var(--r);
+  padding: 0;
+  margin: 0; /* 移除所有 margin */
+}
+
+.tab-content .chat-box .chat-title {
+  display: none; /* 隱藏，因為 tab 按鈕已經顯示「聊天」了 */
+}
+
+.tab-content .chat-box .chat-messages {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  padding: 14px 18px 18px 18px; /* 上方留呼吸空間 */
+  margin: 0;
+  background: transparent;
+}
+
+/* 第一個訊息不要有 margin-top，最後一個不要有 margin-bottom */
+.tab-content .chat-box .chat-messages .chat-message:first-child {
+  margin-top: 0;
+}
+
+.tab-content .chat-box .chat-messages .chat-message:last-child {
+  margin-bottom: 0;
+}
+
+.tab-content .chat-box .chat-input-area {
+  margin-top: 0;
+  padding: 18px;
+  border-top: 0; /* 移除斷檔 */
+  flex-shrink: 0; /* 不要被壓縮 */
 }

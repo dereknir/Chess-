@@ -10,6 +10,7 @@ import PgnButton from './PgnButton';
 import RealtimeRefresh from './RealtimeRefresh';
 import ThemeSelector from './ThemeSelector';
 import ChatBox from './ChatBox';
+import MoveLogChatTabs from './MoveLogChatTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,25 +102,30 @@ export default async function Page({
           theme={theme}
         />
 
-        <MoveLog
-          moves={moves}
-          initialFen={game.initial_fen}
-          caption={`${white.display_name} 執白`}
-          footer={
-            <PgnButton
-              pgn={buildPgnFor(game, moves, white.display_name, black.display_name)}
+        <MoveLogChatTabs
+          moveLogContent={
+            <MoveLog
+              moves={moves}
+              initialFen={game.initial_fen}
+              caption={`${white.display_name} 執白`}
+              footer={
+                <PgnButton
+                  pgn={buildPgnFor(game, moves, white.display_name, black.display_name)}
+                />
+              }
+            />
+          }
+          chatContent={
+            <ChatBox
+              gameId={game.id}
+              myId={me.id}
+              opponentName={opponent.display_name}
+              finalPlyCount={game.status === 'ongoing' ? null : game.ply_count}
+              initialMessages={chatMessages}
             />
           }
         />
       </div>
-
-      <ChatBox
-        gameId={game.id}
-        myId={me.id}
-        opponentName={opponent.display_name}
-        finalPlyCount={game.status === 'ongoing' ? null : game.ply_count}
-        initialMessages={chatMessages}
-      />
     </main>
   );
 }

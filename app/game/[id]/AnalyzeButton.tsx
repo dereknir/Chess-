@@ -15,9 +15,12 @@ export default function AnalyzeButton({ gameId, hasAnalysis }: Props) {
   const router = useRouter();
 
   function handleAnalyze() {
+    console.log('[AnalyzeButton] handleAnalyze called, gameId:', gameId);
     setError(null);
     startTransition(async () => {
+      console.log('[AnalyzeButton] Starting analysis...');
       const res = await analyzeGame(gameId);
+      console.log('[AnalyzeButton] Analysis result:', res);
       if (res.ok) {
         router.refresh();
       } else {
@@ -41,7 +44,7 @@ export default function AnalyzeButton({ gameId, hasAnalysis }: Props) {
         onClick={handleAnalyze}
         disabled={pending}
       >
-        {pending ? '分析中...' : '🔍 用 Stockfish 分析'}
+        {pending ? '分析中...' : '🔍 Stockfish 分析'}
       </button>
       {error && <p className="error-text">{error}</p>}
       {pending && (
