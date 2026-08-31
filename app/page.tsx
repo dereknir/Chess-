@@ -117,6 +117,7 @@ export default async function Page({
         gameId={game.id}
         myId={me.id}
         opponentName={opponent.display_name}
+        finalPlyCount={game.status === 'ongoing' ? null : game.ply_count}
         initialMessages={chatMessages}
       />
     </main>

@@ -921,6 +921,17 @@ input[type="text"]:focus, textarea:focus {
   border-color: var(--rule);
 }
 
+.chat-message-clickable {
+  cursor: pointer;
+}
+
+.chat-message-clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--brass);
+  transform: translateX(2px);
+  transition: all 0.15s;
+}
+
 .chat-message-me {
   border-left: 2px solid var(--brass);
 }
@@ -947,7 +958,7 @@ input[type="text"]:focus, textarea:focus {
   color: var(--brass);
 }
 
-.chat-time {
+.chat-ply {
   font-family: var(--mono);
   font-size: 11px;
   color: var(--dim);

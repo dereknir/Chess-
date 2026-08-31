@@ -57,6 +57,7 @@ export type ChatMessage = {
   game_id: number;
   player_id: string;
   message: string;
+  ply: number | null;
   created_at: Date;
 };
 

@@ -10,10 +10,12 @@ type Props = {
   gameId: number;
   myId: string;
   opponentName: string;
+  finalPlyCount: number | null; // 對局結束時的步數，ongoing 時為 null
   initialMessages: Array<{
     id: number;
     player_id: string;
     message: string;
+    ply: number | null;
     created_at: Date;
   }>;
 };
@@ -22,6 +24,7 @@ export default function ChatBox({
   gameId,
   myId,
   opponentName,
+  finalPlyCount,
   initialMessages,
 }: Props) {
   const [message, setMessage] = useState('');
@@ -99,8 +102,8 @@ export default function ChatBox({
                   <span className="chat-sender">
                     {isMe ? '我' : opponentName}
                   </span>
-                  <span className="chat-time">
-                    {formatTime(msg.created_at)}
+                  <span className="chat-ply">
+                    {formatPly(msg.ply, finalPlyCount)}
                   </span>
                 </div>
                 <div className="chat-message-content">{msg.message}</div>
@@ -137,9 +140,13 @@ export default function ChatBox({
   );
 }
 
-function formatTime(date: Date): string {
-  const d = new Date(date);
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+function formatPly(ply: number | null, finalPlyCount: number | null): string {
+  if (ply === null || ply === 0) {
+    return '局前';
+  }
+  // 對局已結束，且訊息是最後步數之後發的 → 局後
+  if (finalPlyCount !== null && ply >= finalPlyCount) {
+    return '局後';
+  }
+  return `第 ${Math.ceil(ply / 2)} 手`;
 }

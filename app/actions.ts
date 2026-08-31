@@ -524,9 +524,14 @@ export async function sendChatMessage(
   }
 
   try {
+    // 取得當前手數
+    const [game] = await sql<Game[]>`
+      select ply_count from games where id = ${gameId}
+    `;
+
     await sql`
-      insert into chat_messages (game_id, player_id, message)
-      values (${gameId}, ${me.id}, ${trimmedMessage})
+      insert into chat_messages (game_id, player_id, message, ply)
+      values (${gameId}, ${me.id}, ${trimmedMessage}, ${game?.ply_count ?? null})
     `;
   } catch (err) {
     console.error('[sendChatMessage]', err);

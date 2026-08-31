@@ -1,12 +1,10 @@
 import { notFound } from 'next/navigation';
-import sql, { type Game, type Move, type Player, type MoveAnalysis } from '@/lib/db';
+import sql, { type Game, type Move, type Player, type MoveAnalysis, type ChatMessage } from '@/lib/db';
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
-import Replay from './Replay';
-import MoveLog from '../../MoveLog';
-import PgnButton from '../../PgnButton';
 import NoteEditor from './NoteEditor';
 import AnalyzeButton from './AnalyzeButton';
+import GameReplayPage from './GameReplayPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +28,10 @@ export default async function GamePage({
 
   const analysis = await sql<MoveAnalysis[]>`
     select * from move_analysis where game_id = ${game.id} order by ply
+  `;
+
+  const chatMessages = await sql<ChatMessage[]>`
+    select * from chat_messages where game_id = ${game.id} order by created_at
   `;
 
   const [white] = await sql<Player[]>`
@@ -62,20 +64,18 @@ export default async function GamePage({
 
       <AnalyzeButton gameId={game.id} hasAnalysis={analysis.length > 0} />
 
-      <div className="game">
-        <Replay
-          initialFen={game.initial_fen}
-          fens={moves.map((m) => m.fen_after)}
-          orientation={game.white_id === me.id ? 'white' : 'black'}
-        />
-        <MoveLog
-          moves={moves}
-          initialFen={game.initial_fen}
-          caption={game.result ?? ''}
-          analysis={analysis.length > 0 ? analysis : undefined}
-          footer={<PgnButton pgn={pgn} />}
-        />
-      </div>
+      <GameReplayPage
+        initialFen={game.initial_fen}
+        fens={moves.map((m) => m.fen_after)}
+        orientation={game.white_id === me.id ? 'white' : 'black'}
+        moves={moves}
+        analysis={analysis.length > 0 ? analysis : undefined}
+        pgn={pgn}
+        result={game.result ?? ''}
+        myId={me.id}
+        opponentName={game.white_id === me.id ? black.display_name : white.display_name}
+        chatMessages={chatMessages}
+      />
     </main>
   );
 }
