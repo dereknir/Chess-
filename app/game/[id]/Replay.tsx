@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
+import type { Square } from 'chess.js';
 import type { Move, MoveAnalysis } from '@/lib/db';
 import EvaluationBar from './EvaluationBar';
 
@@ -55,7 +56,7 @@ export default function Replay({
 
   // 計算格子高亮樣式和箭頭
   const customSquareStyles: Record<string, React.CSSProperties> = {};
-  const customArrows: [string, string, string][] = [];
+  const customArrows: [Square, Square, string][] = [];
 
   // 如果有走法資料，標記當前走法的品質
   if (i > 0 && moves && moves.length >= i) {
@@ -104,14 +105,14 @@ export default function Replay({
           currentAnalysis.best_move.length >= 4 &&
           currentAnalysis.classification &&
           ['inaccuracy', 'mistake', 'blunder'].includes(currentAnalysis.classification)) {
-        const bestFrom = currentAnalysis.best_move.substring(0, 2);
-        const bestTo = currentAnalysis.best_move.substring(2, 4);
+        const bestFrom = currentAnalysis.best_move.substring(0, 2) as Square;
+        const bestTo = currentAnalysis.best_move.substring(2, 4) as Square;
 
         // 綠色箭頭指向最佳走法
         customArrows.push([bestFrom, bestTo, 'rgb(111, 179, 111)']);
 
         // 紅色箭頭顯示實際走法（可選）
-        // customArrows.push([from, to, 'rgb(196, 85, 61)']);
+        // customArrows.push([from as Square, to as Square, 'rgb(196, 85, 61)']);
       }
     }
   }
