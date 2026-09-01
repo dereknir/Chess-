@@ -47,6 +47,8 @@ export default function GameReplayPage({
         orientation={orientation}
         currentPly={currentPly}
         onPlyChange={setCurrentPly}
+        moves={moves}
+        analysis={analysis}
       />
       <MoveLogChatTabs
         moveLogContent={
