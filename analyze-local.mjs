@@ -36,8 +36,7 @@ const sql = postgres(DATABASE_URL, {
 
 // Stockfish 設定
 const STOCKFISH_PATH = 'stockfish'; // 或指定完整路徑
-const ANALYSIS_DEPTH = 30; // 分析深度（職業級）
-const ANALYSIS_TIME = 15000; // 每步分析時間（毫秒，15秒）
+const ANALYSIS_TIME_MS = 15000; // 每步分析時間 15 秒（能算多深就多深）
 
 /**
  * 使用 Stockfish 分析局面
@@ -46,7 +45,8 @@ async function analyzePosition(fen, multiPv = 3) {
   return new Promise((resolve, reject) => {
     const stockfish = spawn(STOCKFISH_PATH);
     let output = '';
-    let timeout;
+    let analysisTimeout;
+    let safetyTimeout;
 
     stockfish.stdout.on('data', (data) => {
       output += data.toString();
@@ -57,7 +57,8 @@ async function analyzePosition(fen, multiPv = 3) {
     });
 
     stockfish.on('close', () => {
-      clearTimeout(timeout);
+      clearTimeout(analysisTimeout);
+      clearTimeout(safetyTimeout);
 
       // 解析 Stockfish 輸出 - 取最深的分析結果
       const lines = output.split('\n');
@@ -105,14 +106,24 @@ async function analyzePosition(fen, multiPv = 3) {
     stockfish.stdin.write(`setoption name MultiPV value ${multiPv}\n`);
     stockfish.stdin.write('ucinewgame\n');
     stockfish.stdin.write(`position fen ${fen}\n`);
-    stockfish.stdin.write(`go depth ${ANALYSIS_DEPTH} movetime ${ANALYSIS_TIME}\n`);
+    stockfish.stdin.write(`go movetime ${ANALYSIS_TIME_MS}\n`); // 改用固定時間
 
-    timeout = setTimeout(() => {
+    // 設定分析時間結束後發送 stop（保險起見）
+    analysisTimeout = setTimeout(() => {
       stockfish.stdin.write('stop\n');
       setTimeout(() => {
         stockfish.stdin.write('quit\n');
       }, 100);
-    }, ANALYSIS_TIME + 5000);
+    }, ANALYSIS_TIME_MS + 1000); // 分析時間 + 1 秒緩衝
+
+    // 設定安全超時（最多 30 秒），防止完全卡死
+    safetyTimeout = setTimeout(() => {
+      stockfish.stdin.write('stop\n');
+      setTimeout(() => {
+        stockfish.stdin.write('quit\n');
+        stockfish.kill();
+      }, 100);
+    }, 30000);
   });
 }
 

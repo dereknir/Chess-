@@ -108,6 +108,7 @@ export default async function Page({
               moves={moves}
               initialFen={game.initial_fen}
               caption={`${white.display_name} 執白`}
+              userColor={myColor === 'w' ? 'white' : 'black'}
               footer={
                 <PgnButton
                   pgn={buildPgnFor(game, moves, white.display_name, black.display_name)}

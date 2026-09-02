@@ -8,6 +8,8 @@ type Props = {
   caption?: string;
   analysis?: MoveAnalysis[];
   footer?: React.ReactNode;
+  /** 使用者的顏色，用於評估圖視角調整 */
+  userColor?: 'white' | 'black';
 };
 
 /**
@@ -16,7 +18,7 @@ type Props = {
  * 刻意做成紙本的樣子 —— 每列一個回合、白黑兩欄、等寬字。
  * 它本來就是一張表格，用表格的形式呈現不是裝飾，是最誠實的做法。
  */
-export default function MoveLog({ moves, initialFen, caption, analysis, footer }: Props) {
+export default function MoveLog({ moves, initialFen, caption, analysis, footer, userColor }: Props) {
   const rows = pairByFullmove(moves, initialFen);
 
   // 建立 ply -> analysis 的映射
@@ -31,7 +33,7 @@ export default function MoveLog({ moves, initialFen, caption, analysis, footer }
       </header>
 
       {analysis && analysis.length > 0 && (
-        <EvaluationGraph analysis={analysis} />
+        <EvaluationGraph analysis={analysis} moves={moves} initialFen={initialFen} userColor={userColor} />
       )}
 
       {rows.length === 0 ? (

@@ -58,6 +58,7 @@ export default function GameReplayPage({
             caption={result}
             analysis={analysis}
             footer={<PgnButton pgn={pgn} />}
+            userColor={orientation}
           />
         }
         chatContent={

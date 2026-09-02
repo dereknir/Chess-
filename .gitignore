@@ -6,7 +6,7 @@ node_modules/
 out/
 next-env.d.ts
 
-# env — 秘密都在這,絕對不要 commit
+# env
 .env.local
 .env*.local
 
@@ -17,3 +17,4 @@ next-env.d.ts
 # vercel
 .vercel
 .env*
+archive/
