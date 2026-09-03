@@ -449,6 +449,10 @@ a { color: inherit; }
 
 .verdict p { margin: 0; color: var(--slate); font-size: 13.5px; }
 
+/* 歷史頁的總比數：改用日期那組等寬字。只作用在這裡，
+   對局頁的終局橫幅共用 .verdict，維持原本的襯線。 */
+.verdict-tally h2 { font-family: var(--mono); }
+
 /* ---------- 分析按鈕 ---------- */
 
 .analysis-section {
@@ -772,6 +776,16 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .records .line { font-size: 14px; }
+
+/* 執黑執白：名字順序本來就是白在前，但沒標的話讀不出來 */
+.records .side {
+  margin-left: 3px;
+  font-family: var(--sans); /* mono 的中文會 fallback，寬度會歪 */
+  font-size: 10px;
+  color: var(--dim);
+  vertical-align: 1px; /* 對齊中文字的視覺中線 */
+}
+
 .records .when { font-size: 12px; color: var(--dim); font-family: var(--mono); }
 
 .record-note {

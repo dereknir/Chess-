@@ -9,8 +9,10 @@ type Row = {
   ended_at: Date;
   status: string;
   ply_count: number;
+  white_id: string;
   white_name: string;
   black_name: string;
+  winner_id: string | null;
   winner_name: string | null;
   note: string | null;
 };
@@ -28,6 +30,7 @@ export default async function History() {
 
   const games = await sql<Row[]>`
     select g.id, g.result, g.ended_at, g.status, g.ply_count, g.note,
+           g.white_id, g.winner_id,
            w.display_name as white_name,
            b.display_name as black_name,
            n.display_name as winner_name
@@ -57,7 +60,7 @@ export default async function History() {
 
   return (
     <main>
-      <div className="verdict">
+      <div className="verdict verdict-tally">
         <h2>
           {tally.map((t) => `${t.name} ${t.wins}`).join('　—　')}
           {draws > 0 && `　（和 ${draws}）`}
@@ -72,7 +75,9 @@ export default async function History() {
               <span className="score">{g.result}</span>
               <div>
                 <div className="line">
-                  {g.white_name} 對 {g.black_name}
+                  {g.white_name}
+                  <span className="side">(白)</span> 對 {g.black_name}
+                  <span className="side">(黑)</span>
 
                   <span style={{ color: 'var(--dim)', fontSize: 12 }}>
                     {describe(g)}
@@ -95,13 +100,20 @@ export default async function History() {
 
 function describe(g: Row) {
   const moveCount = Math.ceil(g.ply_count / 2);
-  const how =
-    g.status === 'checkmate'
-      ? '將死'
-      : g.status === 'stalemate'
-        ? '逼和'
-        : g.status === 'resigned'
-          ? '認輸'
-          : '和棋';
-  return `${how}　${moveCount} 回合`;
+  // 用 id 比對而不是 display_name，兩人同名時才不會認錯
+  const loser = g.winner_id === g.white_id ? g.black_name : g.white_name;
+
+  switch (g.status) {
+    case 'resigned':
+      return `${loser} 認輸　${moveCount} 回合`;
+    case 'checkmate':
+      return `${g.winner_name} 將死　${moveCount} 回合`;
+    case 'stalemate':
+      return `逼和　${moveCount} 回合`;
+    case 'draw':
+      return `和棋　${moveCount} 回合`;
+    // 兜底不要說成「和棋」——之後多一種結束方式就會默默說謊
+    default:
+      return `${g.status}　${moveCount} 回合`;
+  }
 }
