@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Pusher from 'pusher-js';
 import { sendChatMessage } from './actions';
 import type { ChatMessage } from '@/lib/db';
 
@@ -30,40 +28,39 @@ export default function ChatBox({
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const listRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true); // 使用者目前是否停在底部
+  const isFirstRender = useRef(true);
 
-  // 自動滾動到最新訊息
+  // 只捲聊天容器本身。scrollIntoView 會把每一層祖先都捲到目標可見為止，
+  // 手機上外層 document 也需要捲，於是整頁被拉到最底。
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = listRef.current;
+    const first = isFirstRender.current;
+    isFirstRender.current = false;
+
+    // 使用者往上翻歷史訊息時不要把他拉回來
+    if (!el || !stickToBottom.current) return;
+
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: first ? 'auto' : 'smooth', // 首次掛載直接就位，不要動畫
+    });
   }, [initialMessages]);
 
-  // 監聽 Pusher 即時更新
-  useEffect(() => {
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-    });
-
-    const channel = pusher.subscribe('game-updates');
-
-    channel.bind('chat', (data: { gameId: number }) => {
-      if (data.gameId === gameId) {
-        console.log('[pusher] 收到新訊息，刷新聊天');
-        router.refresh();
-      }
-    });
-
-    return () => {
-      channel.unbind_all();
-      channel.unsubscribe();
-      pusher.disconnect();
-    };
-  }, [gameId, router]);
+  function handleScroll() {
+    const el = listRef.current;
+    if (!el) return;
+    // 留 40px 餘裕，觸控慣性不會讓它誤判成「已離開底部」
+    stickToBottom.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  }
 
   async function handleSend() {
     if (!message.trim()) return;
 
     setError(null);
+    stickToBottom.current = true; // 自己發言一定要看到
     const msg = message;
     setMessage(''); // 立即清空輸入框（樂觀更新）
 
@@ -87,7 +84,7 @@ export default function ChatBox({
     <div className="chat-box">
       <h3 className="chat-title">對局聊天</h3>
 
-      <div className="chat-messages">
+      <div className="chat-messages" ref={listRef} onScroll={handleScroll}>
         {initialMessages.length === 0 ? (
           <p className="chat-empty">還沒有訊息</p>
         ) : (
@@ -111,7 +108,6 @@ export default function ChatBox({
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="chat-input-area">

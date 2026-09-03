@@ -103,6 +103,7 @@ export default async function Page({
         />
 
         <MoveLogChatTabs
+          chatMessageCount={chatMessages.length}
           moveLogContent={
             <MoveLog
               moves={moves}
