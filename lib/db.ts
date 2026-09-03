@@ -67,6 +67,8 @@ export type MoveAnalysis = {
   ply: number;
   cp: number | null;
   mate_in: number | null;
+  best_cp: number | null;
+  best_mate_in: number | null;
   best_move: string | null;
   best_move_san: string | null;
   actual_move_rank: number | null;

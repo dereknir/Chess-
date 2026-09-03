@@ -27,7 +27,7 @@ export default async function GamePage({
   `;
 
   const analysis = await sql<MoveAnalysis[]>`
-    select * from move_analysis where game_id = ${game.id} order by ply
+    select * from move_analysis_backup where game_id = ${game.id} order by ply
   `;
 
   const chatMessages = await sql<ChatMessage[]>`

@@ -5,7 +5,7 @@
 - 同時只有一盤進行中，隨時中斷隨時接續
 - 每一步都留紀錄（SAN、UCI、局面、思考時間）
 - 可以從殘局開局：貼 FEN 或直接擺子
-- 一鍵複製 PGN，丟到 Lichess 拿 Stockfish 分析
+- 本地 Stockfish 分析 + 評估走勢圖，一鍵複製 PGN
 
 ## 本機開發
 
@@ -64,12 +64,15 @@ app/page.tsx             目前這盤，或開局表單
 app/NewGame.tsx          開局表單（含擺子編輯器）
 app/Board.tsx            可下棋的棋盤（含落點提示、上一步高亮、悔棋、提和）
 app/MoveLog.tsx          記譜表
+app/EvaluationGraph.tsx  評估走勢圖（含 hover 顯示每步評估值）
+app/MoveLogChatTabs.tsx  記譜與聊天的分頁切換
 app/PgnButton.tsx        複製 PGN
 app/ThemeSelector.tsx    棋盤配色切換
 app/ChatBox.tsx          局中聊天（含即時推播）
 app/history/page.tsx     歷史對局與戰績
 app/stats/page.tsx       個人統計
 app/game/[id]/           單局重播（含備註編輯）
+analyze-local.mjs        本地 Stockfish 分析工具（15 秒/步，能算多深算多深）
 tests/                   棋規與擺子編輯器的測試
 ```
 
@@ -112,7 +115,7 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 
 **貓是暖白線稿，favicon 自己帶底色。** 原圖是黑線畫在白底上，站上是深色的，所以線條重新上成 `--chalk` 的暖白、白底去掉，米色斑紋保留。header 那隻直接疊在深色底上就好；favicon 不行——分頁列的顏色不歸網站控制，暖白線條在淺色分頁列上會消失，所以圖示自己帶一塊 `--felt` 的深色圓角底，深淺兩種分頁列都看得見。favicon 另外只裁頭部並加粗線條，整隻貓縮到 16px 只會是一團灰。
 
-**分析不自己做。** `buildPgn()` 產生的 PGN 直接貼到 Lichess 的 Import game，就拿到 Stockfish 標好的失誤與準確率。自己跑引擎划不來。
+**本地分析用 Stockfish。** `analyze-local.mjs` 可以分析已結束的棋局，每步給 15 秒思考時間（能算多深算多深），將評估值、最佳走法、走法分類（best/good/inaccuracy/mistake/blunder）存入 `move_analysis` 表。評估圖從使用者視角顯示（執白看到白方優勢往上、執黑看到黑方優勢往上），CP 和 Mate 分數都會根據輪到誰走正確翻轉，避免震盪。
 
 ## 核心功能
 
@@ -125,9 +128,11 @@ node tests/editor.test.mjs    # 擺子編輯器的 FEN 解析與往返
 - ✅ **三次重複和棋判定**：自動比對歷史局面，滿 3 次宣告和棋
 - ✅ **步數與子數顯示**：即時顯示目前第幾步、雙方剩餘棋子數
 
-## 統計與紀錄
+## 統計與分析
 
 - ✅ **個人統計頁面**：戰績（勝/敗/和、勝率）、棋步統計（吃子率、將軍率）、思考時間（平均/最快/最慢）
 - ✅ **棋局備註**：每局可新增/編輯註解（例如「某某開局」「紀念局」）
 - ✅ **歷史對局列表**：顯示所有已結束的棋局與戰績統計
 - ✅ **單局重播**：逐步重播任一歷史對局
+- ✅ **本地 Stockfish 分析**：`analyze-local.mjs` 可分析已結束棋局，標記失誤與最佳走法
+- ✅ **評估走勢圖**：視覺化顯示整局評估變化，滑鼠 hover 顯示每步評估值與著法

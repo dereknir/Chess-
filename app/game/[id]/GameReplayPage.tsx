@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Replay from './Replay';
 import MoveLog from '../../MoveLog';
 import PgnButton from '../../PgnButton';
 import ReplayChatBox from './ReplayChatBox';
 import MoveLogChatTabs from '../../MoveLogChatTabs';
+import AccuracyStats from './AccuracyStats';
+import { calculateGameAccuracy } from '@/lib/accuracy';
 import type { Move, MoveAnalysis, ChatMessage } from '@/lib/db';
 
 type Props = {
@@ -35,6 +37,12 @@ export default function GameReplayPage({
 }: Props) {
   const [currentPly, setCurrentPly] = useState(fens.length); // 從最後開始
 
+  // 計算準確率統計
+  const accuracyStats = useMemo(() => {
+    if (!analysis || analysis.length === 0) return null;
+    return calculateGameAccuracy(moves, analysis, orientation);
+  }, [moves, analysis, orientation]);
+
   function handleJumpToPly(ply: number) {
     setCurrentPly(ply);
   }
@@ -57,7 +65,12 @@ export default function GameReplayPage({
             initialFen={initialFen}
             caption={result}
             analysis={analysis}
-            footer={<PgnButton pgn={pgn} />}
+            footer={
+              <>
+                {accuracyStats && <AccuracyStats {...accuracyStats} />}
+                <PgnButton pgn={pgn} />
+              </>
+            }
             userColor={orientation}
           />
         }

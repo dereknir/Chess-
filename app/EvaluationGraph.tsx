@@ -26,8 +26,8 @@ export default function EvaluationGraph({ analysis, moves, initialFen, userColor
   const moveMap = new Map<number, Move>();
   moves.forEach(m => moveMap.set(m.ply, m));
 
-  const width = 600;
-  const height = 120;
+  const width = 720;
+  const height = 300;
   const padding = { top: 10, right: 20, bottom: 20, left: 35 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;

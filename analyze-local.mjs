@@ -253,10 +253,11 @@ async function analyzeGame(gameId) {
       // 儲存
       await sql`
         insert into move_analysis (
-          game_id, ply, cp, mate_in, depth, best_move, best_move_san,
-          actual_move_rank, classification
+          game_id, ply, cp, mate_in, best_cp, best_mate_in, depth,
+          best_move, best_move_san, actual_move_rank, classification
         ) values (
           ${gameId}, ${move.ply}, ${currentCp}, ${currentMate},
+          ${bestPv.cp}, ${bestPv.mate},
           ${actualDepth}, ${bestMove}, ${bestMoveSan},
           ${actualMoveRank}, ${classification}
         )

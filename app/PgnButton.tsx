@@ -18,7 +18,7 @@ export default function PgnButton({ pgn }: { pgn: string }) {
   }
 
   return (
-    <>
+    <div className="pgn-buttons">
       <button className="btn-ghost" onClick={copy}>
         {copied ? '已複製' : '複製 PGN'}
       </button>
@@ -30,6 +30,6 @@ export default function PgnButton({ pgn }: { pgn: string }) {
       >
         丟去分析
       </a>
-    </>
+    </div>
   );
 }
