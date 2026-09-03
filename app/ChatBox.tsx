@@ -31,6 +31,7 @@ export default function ChatBox({
   const listRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true); // 使用者目前是否停在底部
   const isFirstRender = useRef(true);
+  const sending = useRef(false); // 送出中，擋連按
 
   // 只捲聊天容器本身。scrollIntoView 會把每一層祖先都捲到目標可見為止，
   // 手機上外層 document 也需要捲，於是整頁被拉到最底。
@@ -56,24 +57,38 @@ export default function ChatBox({
       el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   }
 
-  async function handleSend() {
-    if (!message.trim()) return;
+  function handleSend() {
+    const msg = message;
+    // pending 是 state，要等重新 render 才會變 true。連按兩次 Enter 時，
+    // 第二次的 handler 可能還讀到舊的 message 和舊的 pending，就送出兩則。
+    // ref 是同步的，所以擋得住。
+    if (sending.current || !msg.trim()) return;
 
+    sending.current = true;
     setError(null);
     stickToBottom.current = true; // 自己發言一定要看到
-    const msg = message;
     setMessage(''); // 立即清空輸入框（樂觀更新）
 
     startTransition(async () => {
-      const res = await sendChatMessage(gameId, msg);
-      if (!res.ok) {
-        setError(res.message);
-        setMessage(msg); // 失敗時恢復訊息
+      try {
+        const res = await sendChatMessage(gameId, msg);
+        if (!res.ok) {
+          setError(res.message);
+          setMessage(msg); // 失敗時恢復訊息
+        }
+      } finally {
+        sending.current = false;
       }
     });
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    // 中文輸入法組字中的 Enter 是拿來確認候選字的，不是送出。
+    // 不擋的話「你好」的 Enter 會連字一起送出去。
+    // keyCode 229 是 Safari 的補充：它有時在 keydown 之前就結束組字，
+    // 這時 isComposing 已經是 false。
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
