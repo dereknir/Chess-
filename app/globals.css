@@ -441,17 +441,13 @@ a { color: inherit; }
 }
 
 .verdict h2 {
-  font-family: var(--serif);
+  font-family: var(--mono);
   font-size: 20px;
   margin: 0 0 4px;
   color: var(--brass);
 }
 
 .verdict p { margin: 0; color: var(--slate); font-size: 13.5px; }
-
-/* 歷史頁的總比數：改用日期那組等寬字。只作用在這裡，
-   對局頁的終局橫幅共用 .verdict，維持原本的襯線。 */
-.verdict-tally h2 { font-family: var(--mono); }
 
 /* ---------- 分析按鈕 ---------- */
 

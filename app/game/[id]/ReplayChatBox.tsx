@@ -17,15 +17,15 @@ export default function ReplayChatBox({
   finalPlyCount,
   onJumpToPly,
 }: Props) {
-  if (messages.length === 0) {
-    return null; // 沒訊息就不顯示
-  }
-
   return (
     <div className="chat-box">
       <h3 className="chat-title">對局聊天記錄</h3>
 
       <div className="chat-messages">
+        {messages.length === 0 && (
+          // 這個元件是分頁的內容，回傳 null 會讓分頁下面空一塊
+          <p className="chat-empty">這局沒有聊天記錄</p>
+        )}
         {messages.map((msg) => {
           const isMe = msg.player_id === myId;
           const plyLabel = formatPly(msg.ply, finalPlyCount);

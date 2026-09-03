@@ -60,7 +60,7 @@ export default async function History() {
 
   return (
     <main>
-      <div className="verdict verdict-tally">
+      <div className="verdict">
         <h2>
           {tally.map((t) => `${t.name} ${t.wins}`).join('　—　')}
           {draws > 0 && `　（和 ${draws}）`}
