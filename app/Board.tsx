@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess, type Square } from 'chess.js';
 import { playMove, resign, takeback, offerDraw, respondToDraw } from './actions';
@@ -26,6 +26,27 @@ type PossibleMove = {
   to: Square;
   isCapture: boolean;
 };
+
+/**
+ * 主要指標裝置是否為觸控（手機、平板）。
+ * 用 pointer: coarse 而非螢幕寬度 —— 電腦視窗縮到手機寬度時主指標仍是滑鼠，
+ * 這樣就能只在真正的觸控裝置上關掉拖曳，避免滑動誤觸。
+ */
+function useCoarsePointer(): boolean {
+  // SSR 與 hydration 前一律當成滑鼠，掛載後才修正，避免 hydration 不一致。
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)');
+    setCoarse(mq.matches);
+
+    const onChange = (e: MediaQueryListEvent) => setCoarse(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return coarse;
+}
 
 /** 從 FEN 計算雙方剩餘子數（不含王） */
 function countPieces(fen: string): { white: number; black: number } {
@@ -69,8 +90,12 @@ export default function Board({
     to: string;
   } | null>(null);
 
+  // 觸控裝置只留點擊走子，拖曳容易誤滑。
+  const isTouchDevice = useCoarsePointer();
+
   const shown = optimisticFen ?? fen;
   const canMove = isMyTurn && !pending;
+  const canDrag = canMove && !isTouchDevice;
 
   /** 偵測是否為升變走法 */
   function isPromotionMove(from: string, to: string): boolean {
@@ -132,7 +157,7 @@ export default function Board({
   }
 
   function onDrop(from: string, to: string) {
-    if (!canMove) return false;
+    if (!canDrag) return false;
     return executeMove(from, to);
   }
 
@@ -258,7 +283,7 @@ export default function Board({
           onPieceDrop={onDrop}
           onSquareClick={onSquareClick}
           boardOrientation={myColor === 'w' ? 'white' : 'black'}
-          arePiecesDraggable={canMove}
+          arePiecesDraggable={canDrag}
           customDarkSquareStyle={{ backgroundColor: theme.darkSquare }}
           customLightSquareStyle={{ backgroundColor: theme.lightSquare }}
           customSquareStyles={customSquareStyles}
