@@ -17,9 +17,13 @@
   --brass:  #c9a227;   /* 黃銅：只給「輪到你」與終局 */
   --ember:  #c4553d;   /* 只給錯誤與將軍 */
 
+  /* 內文一套，純英數（棋譜、比分、時間）一套。
+     不載中文 webfont —— CJK 全字集動輒好幾 MB，不值得。
+     mono 沒有中文字，所以只用在不會出現中文的地方。
+     serif 只剩站名 .wordmark 在用，其餘標題都走 --sans。 */
   --serif: "Noto Serif TC", "Songti TC", Georgia, serif;
-  --sans:  -apple-system, "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
-  --mono:  "SF Mono", ui-monospace, Menlo, "Roboto Mono", monospace;
+  --sans: var(--font-sans), system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
 
   --r: 10px;
 }
@@ -279,7 +283,6 @@ a { color: inherit; }
 }
 
 .sheet h2 {
-  font-family: var(--serif);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: .18em;
@@ -287,7 +290,7 @@ a { color: inherit; }
   color: var(--slate);
 }
 
-.sheet .meta { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+.sheet .meta { font-size: 11px; color: var(--dim); }
 
 .rows {
   list-style: none;
@@ -441,7 +444,7 @@ a { color: inherit; }
 }
 
 .verdict h2 {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums; /* 含中文，走 sans；數字另外對齊 */
   font-size: 20px;
   margin: 0 0 4px;
   color: var(--brass);
@@ -512,7 +515,6 @@ a { color: inherit; }
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--slate);
-  font-family: var(--mono);
   text-align: center;
 }
 
@@ -603,7 +605,6 @@ a { color: inherit; }
 }
 
 .panel h1 {
-  font-family: var(--serif);
   font-size: 22px;
   margin: 0 0 6px;
 }
@@ -661,7 +662,7 @@ input[type="text"], textarea {
   border: 1.5px solid var(--rule);
   border-radius: 7px;
   color: var(--chalk);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 12.5px;
 }
 
@@ -795,13 +796,12 @@ input[type="text"]:focus, textarea:focus {
 /* ---------- 空狀態 ---------- */
 
 .empty { padding: 60px 0; max-width: 520px; }
-.empty h1 { font-family: var(--serif); font-size: 22px; margin: 0 0 10px; }
+.empty h1 { font-size: 22px; margin: 0 0 10px; }
 .empty p { color: var(--slate); font-size: 14px; margin: 0; line-height: 1.7; }
 
 /* ---------- 統計頁面 ---------- */
 
 .page-title {
-  font-family: var(--serif);
   font-size: 26px;
   font-weight: 600;
   margin: 0 0 8px;
@@ -828,7 +828,6 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .stat-card h2 {
-  font-family: var(--serif);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -975,7 +974,6 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .promotion-modal h3 {
-  font-family: var(--serif);
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 18px;
@@ -1042,7 +1040,6 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .chat-title {
-  font-family: var(--serif);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -1139,7 +1136,7 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .chat-ply {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums; /* 「第 3 手」含中文 */
   font-size: 11px;
   color: var(--dim);
 }
@@ -1265,7 +1262,7 @@ input.chat-input:disabled {
   border: 0;
   border-right: 1px solid var(--rule);
   color: var(--dim);
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .14em;
@@ -1407,7 +1404,6 @@ input.chat-input:disabled {
 
 /* ---------- 準確率統計 ---------- */
 .accuracy-stats-compact {
-  font-family: var(--mono);
   color: var(--slate);
   display: flex;
   flex-direction: column;
@@ -1445,6 +1441,7 @@ input.chat-input:disabled {
 }
 
 .accuracy-stats-compact .acc-cell-value {
+  font-family: var(--mono);
   color: var(--chalk);
   font-size: 15px;
   font-weight: 700;

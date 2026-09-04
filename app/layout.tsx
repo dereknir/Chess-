@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
+import { DM_Sans } from 'next/font/google';
 import { currentPlayer } from '@/lib/auth';
 import './globals.css';
 
-// 這裡曾經用 next/font/google 載 Noto Serif TC，拿掉了，原因兩個：
-//   1. 它產生的 CSS 變數 --font-serif 沒有任何地方用到 —— globals.css 的
-//      --serif 是寫死字型名 "Noto Serif TC"，對不上 next/font 產生的 family。
-//   2. subsets 只能給 'latin'，中文字根本沒在那個子集裡。
-// 結果是白付一份 webfont 下載，中文照樣走 globals.css 的系統字型 fallback。
-// 想要真正的中文 webfont 就得載 CJK 子集，那是好幾 MB，不值得。
+// 英數走 Google Fonts 的 DM Sans；中文沒有跟著載 —— CJK 全字集好幾 MB，
+// 不值得，所以中文仍由 globals.css 的 --sans fallback 交給 PingFang /
+// Noto Sans TC。
+// 關鍵是 next/font 產生的 family 要透過 CSS 變數接進 --sans，不能在 CSS 裡
+// 寫死字型名（之前載 Noto Serif TC 那次就是漏了這一步，等於白載一份 webfont）。
+const sans = DM_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
   title: '自食棋力',
@@ -22,7 +27,7 @@ export default async function RootLayout({
   const me = await currentPlayer();
 
   return (
-    <html lang="zh-Hant">
+    <html lang="zh-Hant" className={sans.variable}>
       <body>
         <div className="shell">
           <header className="topbar">
