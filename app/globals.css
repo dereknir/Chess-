@@ -1408,56 +1408,95 @@ input.chat-input:disabled {
 /* ---------- 準確率統計 ---------- */
 .accuracy-stats-compact {
   font-family: var(--mono);
-  font-size: 11px;
   color: var(--slate);
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  min-width: fit-content;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
-.accuracy-stats-compact .acc-label {
+/* 每一列：多個直式小方塊平均分佈、可換行 */
+.accuracy-stats-compact .acc-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* 直式方塊：標籤在上、數值在下、整體置中 */
+.accuracy-stats-compact .acc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 44px;
+  padding: 2px 4px;
+}
+
+.accuracy-stats-compact .acc-cell-label {
   color: var(--dim);
   font-size: 10px;
-  writing-mode: horizontal-tb;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.accuracy-stats-compact .acc-main {
+.accuracy-stats-compact .acc-cell-value {
   color: var(--chalk);
-}
-
-.accuracy-stats-compact .acc-main strong {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
-.accuracy-stats-compact .acc-sep {
-  color: var(--rule);
-  user-select: none;
-  padding: 0 2px;
-}
-
-.accuracy-stats-compact .acc-phase {
-  color: var(--slate);
-  font-size: 10px;
-}
-
-.accuracy-stats-compact .acc-mistake {
+/* 精準率那一行的中文標籤：加粗 + 提亮，讓粗體更明顯 */
+.accuracy-stats-compact .acc-accuracy .acc-cell-label {
+  font-weight: 800;
   font-size: 12px;
-  font-weight: 600;
+  color: var(--chalk);
+  letter-spacing: 0.3px;
+}
+
+/* 全局準確率：稍微強調 */
+.accuracy-stats-compact .acc-overall .acc-cell-value {
+  font-size: 17px;
+}
+
+/* 兩區之間的分隔線 */
+.accuracy-stats-compact .acc-marks {
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+/* 每步評價：可 hover 看說明 */
+.accuracy-stats-compact .acc-marks .acc-cell {
   cursor: help;
 }
 
-.accuracy-stats-compact .inaccuracy {
+/* 每步評價的符號與數值同色 */
+.accuracy-stats-compact .best .acc-cell-label,
+.accuracy-stats-compact .best .acc-cell-value {
+  color: #7fd88f;
+}
+
+.accuracy-stats-compact .good .acc-cell-label,
+.accuracy-stats-compact .good .acc-cell-value {
+  color: #a9c98a;
+}
+
+.accuracy-stats-compact .inaccuracy .acc-cell-label,
+.accuracy-stats-compact .inaccuracy .acc-cell-value {
   color: #f0c76f;
 }
 
-.accuracy-stats-compact .mistake {
+.accuracy-stats-compact .mistake .acc-cell-label,
+.accuracy-stats-compact .mistake .acc-cell-value {
   color: #f09f5f;
 }
 
-.accuracy-stats-compact .blunder {
+.accuracy-stats-compact .blunder .acc-cell-label,
+.accuracy-stats-compact .blunder .acc-cell-value {
   color: var(--ember);
 }
