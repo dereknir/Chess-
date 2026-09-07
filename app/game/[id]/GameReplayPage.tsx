@@ -65,6 +65,8 @@ export default function GameReplayPage({
             initialFen={initialFen}
             caption={result}
             analysis={analysis}
+            onJumpToPly={handleJumpToPly}
+            currentPly={currentPly}
             footer={
               <>
                 {accuracyStats && <AccuracyStats {...accuracyStats} />}

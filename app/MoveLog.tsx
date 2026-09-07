@@ -10,6 +10,10 @@ type Props = {
   footer?: React.ReactNode;
   /** 使用者的顏色，用於評估圖視角調整 */
   userColor?: 'white' | 'black';
+  /** 有給才會讓每一步變成可點的按鈕（複盤頁用；進行中的對局沒有盤面可跳） */
+  onJumpToPly?: (ply: number) => void;
+  /** 目前盤面停在第幾 ply，用來標出「你正在看這一步」 */
+  currentPly?: number;
 };
 
 /**
@@ -18,7 +22,7 @@ type Props = {
  * 刻意做成紙本的樣子 —— 每列一個回合、白黑兩欄、等寬字。
  * 它本來就是一張表格，用表格的形式呈現不是裝飾，是最誠實的做法。
  */
-export default function MoveLog({ moves, initialFen, caption, analysis, footer, userColor }: Props) {
+export default function MoveLog({ moves, initialFen, caption, analysis, footer, userColor, onJumpToPly, currentPly }: Props) {
   const rows = pairByFullmove(moves, initialFen);
 
   // 建立 ply -> analysis 的映射
@@ -46,10 +50,14 @@ export default function MoveLog({ moves, initialFen, caption, analysis, footer, 
               <Cell
                 move={row.white}
                 analysis={row.white ? analysisMap.get(row.white.ply) : undefined}
+                onJump={onJumpToPly}
+                currentPly={currentPly}
               />
               <Cell
                 move={row.black}
                 analysis={row.black ? analysisMap.get(row.black.ply) : undefined}
+                onJump={onJumpToPly}
+                currentPly={currentPly}
               />
             </li>
           ))}
@@ -61,28 +69,58 @@ export default function MoveLog({ moves, initialFen, caption, analysis, footer, 
   );
 }
 
-function Cell({ move, analysis }: { move: Move | null; analysis?: MoveAnalysis }) {
+function Cell({
+  move,
+  analysis,
+  onJump,
+  currentPly,
+}: {
+  move: Move | null;
+  analysis?: MoveAnalysis;
+  onJump?: (ply: number) => void;
+  currentPly?: number;
+}) {
   if (!move) return <span className="cell" />;
 
   const classSymbol = getClassificationSymbol(analysis?.classification);
   const evalText = analysis ? formatEval(analysis.cp, analysis.mate_in) : null;
+  const isCurrent = currentPly === move.ply;
+
+  // 只有走法本身可點，右邊的評分與思考時間不進按鈕
+  const sanProps = {
+    className: 'san',
+    'data-check': move.is_check,
+    'data-classification': analysis?.classification,
+    'data-current': isCurrent,
+  };
+  const sanContent = (
+    <>
+      {move.san}
+      {classSymbol && <span className="class-mark">{classSymbol}</span>}
+    </>
+  );
 
   return (
     <span className="cell">
       <span className="move-line">
-        <span
-          className="san"
-          data-check={move.is_check}
-          data-classification={analysis?.classification}
-        >
-          {move.san}
-          {classSymbol && <span className="class-mark">{classSymbol}</span>}
-        </span>
+        {/* onJump 沒給就維持純文字 —— 進行中的對局用的是 Board，沒有盤面可跳 */}
+        {onJump ? (
+          <button
+            type="button"
+            {...sanProps}
+            onClick={() => onJump(move.ply)}
+            title={`跳到第 ${Math.ceil(move.ply / 2)} 手`}
+          >
+            {sanContent}
+          </button>
+        ) : (
+          <span {...sanProps}>{sanContent}</span>
+        )}
+        {evalText && <span className="eval">{evalText}</span>}
         {move.thinking_ms != null && (
           <span className="think">{formatThinking(move.thinking_ms)}</span>
         )}
       </span>
-      {evalText && <span className="eval">{evalText}</span>}
       {analysis && analysis.classification && ['inaccuracy', 'mistake', 'blunder'].includes(analysis.classification) && (
         <span className="hint-move" title={`建議: ${analysis.best_move_san ?? analysis.best_move}`}>
           💡 {analysis.best_move_san ?? analysis.best_move}

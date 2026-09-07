@@ -101,7 +101,8 @@ a { color: inherit; }
 
 .game {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  /* 380 而不是 300：評分挪到走法同一行之後，300 會把靠右的思考時間擠掉 */
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 32px;
   align-items: start;
 }
@@ -338,7 +339,65 @@ a { color: inherit; }
 }
 
 .rows .san[data-check="true"] { color: var(--ember); }
-.rows .think { font-size: 10px; color: var(--dim); margin-left: auto; }
+
+/* 可點的走法：按下去盤面就跳到那一步。
+   只有走法本身是按鈕，右邊的評分與思考時間不吃 cursor。
+   button 不繼承字型與底色，要自己收乾淨；border-left 交給下面的品質標記，
+   它的選擇器比較長，蓋得過這裡的 border: 0。 */
+.rows button.san {
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rows button.san:hover {
+  background: rgba(255, 255, 255, .07);
+}
+
+.rows button.san:focus-visible {
+  outline: 1px solid var(--brass);
+  outline-offset: 1px;
+}
+
+/* 盤面現在停在這一步：顏色跟平常完全一樣，只是把透明度從 .12 拉到 .25。
+   選擇器刻意寫長，才壓得過上面走法品質的底色。
+   沒有分析資料的走法（含 good，它本來就沒有配色）沒有色系可沿用，
+   借用 --slate 當中性色 —— 還沒跑分析的對局整張表都是這一種。 */
+.rows .move-line .san[data-current="true"] {
+  background: rgba(128, 141, 166, .25);
+  box-shadow: inset 0 0 0 1px rgba(128, 141, 166, 1);
+}
+
+.rows .move-line .san[data-current="true"][data-classification="best"] {
+  background: rgba(111, 179, 111, .25);
+  box-shadow: inset 0 0 0 1px rgba(111, 179, 111, 1);
+}
+
+.rows .move-line .san[data-current="true"][data-classification="inaccuracy"] {
+  background: rgba(201, 162, 39, .25);
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 1);
+}
+
+.rows .move-line .san[data-current="true"][data-classification="mistake"] {
+  background: rgba(214, 122, 63, .25);
+  box-shadow: inset 0 0 0 1px rgba(214, 122, 63, 1);
+}
+
+.rows .move-line .san[data-current="true"][data-classification="blunder"] {
+  background: rgba(196, 85, 61, .25);
+  box-shadow: inset 0 0 0 1px rgba(196, 85, 61, 1);
+}
+/* margin-left: auto 把思考時間推到最右邊，走法與評分留在左邊 */
+.rows .think {
+  font-size: 10px;
+  color: var(--dim);
+  margin-left: auto;
+  padding-left: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .rows li:last-child .san { color: var(--brass); }
 
@@ -392,6 +451,8 @@ a { color: inherit; }
   padding: 1px 5px;
   background: rgba(128, 141, 166, 0.08);
   border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .rows .hint-move {
