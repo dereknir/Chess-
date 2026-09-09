@@ -59,6 +59,8 @@ export type ChatMessage = {
   player_id: string;
   message: string;
   ply: number | null;
+  /** 回覆哪一則（同一局的 chat_messages.id），沒有就 null */
+  reply_to: number | null;
   created_at: Date;
 };
 

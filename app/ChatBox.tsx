@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from 'react';
 import { sendChatMessage } from './actions';
+import { ChatQuote, jumpToMessage } from './ChatQuote';
 import type { ChatMessage } from '@/lib/db';
 
 type Props = {
@@ -9,13 +10,7 @@ type Props = {
   myId: string;
   opponentName: string;
   finalPlyCount: number | null; // 對局結束時的步數，ongoing 時為 null
-  initialMessages: Array<{
-    id: number;
-    player_id: string;
-    message: string;
-    ply: number | null;
-    created_at: Date;
-  }>;
+  initialMessages: ChatMessage[];
 };
 
 export default function ChatBox({
@@ -28,7 +23,10 @@ export default function ChatBox({
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // 正在回覆哪一則；null 就是普通發言
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const stickToBottom = useRef(true); // 使用者目前是否停在底部
   const isFirstRender = useRef(true);
   const sending = useRef(false); // 送出中，擋連按
@@ -59,6 +57,7 @@ export default function ChatBox({
 
   function handleSend() {
     const msg = message;
+    const target = replyTo;
     // pending 是 state，要等重新 render 才會變 true。連按兩次 Enter 時，
     // 第二次的 handler 可能還讀到舊的 message 和舊的 pending，就送出兩則。
     // ref 是同步的，所以擋得住。
@@ -68,18 +67,31 @@ export default function ChatBox({
     setError(null);
     stickToBottom.current = true; // 自己發言一定要看到
     setMessage(''); // 立即清空輸入框（樂觀更新）
+    setReplyTo(null);
 
     startTransition(async () => {
       try {
-        const res = await sendChatMessage(gameId, msg);
+        const res = await sendChatMessage(gameId, msg, target?.id ?? null);
         if (!res.ok) {
           setError(res.message);
           setMessage(msg); // 失敗時恢復訊息
+          setReplyTo(target);
         }
+      } catch {
+        // 連 server action 都沒回來（斷線、cookie 失效）：
+        // 不接的話會炸到 error boundary，整個聊天框變成錯誤畫面
+        setError('發送訊息失敗，再試一次。');
+        setMessage(msg);
+        setReplyTo(target);
       } finally {
         sending.current = false;
       }
     });
+  }
+
+  function startReply(msg: ChatMessage) {
+    setReplyTo(msg);
+    inputRef.current?.focus();
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -93,7 +105,14 @@ export default function ChatBox({
       e.preventDefault();
       handleSend();
     }
+    if (e.key === 'Escape' && replyTo) {
+      setReplyTo(null);
+    }
   }
+
+  // 引用框要顯示原訊息的內容，用 id 找
+  const byId = new Map(initialMessages.map((m) => [m.id, m]));
+  const nameOf = (m: ChatMessage) => (m.player_id === myId ? '我' : opponentName);
 
   return (
     <div className="chat-box">
@@ -108,16 +127,33 @@ export default function ChatBox({
             return (
               <div
                 key={msg.id}
+                data-message-id={msg.id}
                 className={`chat-message ${isMe ? 'chat-message-me' : 'chat-message-opponent'}`}
               >
                 <div className="chat-message-header">
-                  <span className="chat-sender">
-                    {isMe ? '我' : opponentName}
-                  </span>
-                  <span className="chat-ply">
-                    {formatPly(msg.ply, finalPlyCount)}
+                  <span className="chat-sender">{nameOf(msg)}</span>
+                  <span className="chat-message-meta">
+                    <span className="chat-ply">
+                      {formatPly(msg.ply, finalPlyCount)}
+                    </span>
+                    <button
+                      type="button"
+                      className="chat-reply-btn"
+                      onClick={() => startReply(msg)}
+                      disabled={pending}
+                    >
+                      回覆
+                    </button>
                   </span>
                 </div>
+                {msg.reply_to !== null && (
+                  <ChatQuote
+                    original={byId.get(msg.reply_to) ?? null}
+                    myId={myId}
+                    opponentName={opponentName}
+                    onJump={() => jumpToMessage(listRef.current, msg.reply_to!)}
+                  />
+                )}
                 <div className="chat-message-content">{msg.message}</div>
               </div>
             );
@@ -127,11 +163,27 @@ export default function ChatBox({
 
       <div className="chat-input-area">
         {error && <p className="chat-error">{error}</p>}
+        {replyTo && (
+          <div className="chat-reply-bar">
+            <span className="chat-reply-text">
+              回覆 <b>{nameOf(replyTo)}</b>：{replyTo.message}
+            </span>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              aria-label="取消回覆"
+              title="取消回覆（Esc）"
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div className="chat-input-row">
           <input
+            ref={inputRef}
             type="text"
             className="chat-input"
-            placeholder="輸入訊息..."
+            placeholder={replyTo ? '輸入回覆...' : '輸入訊息...'}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

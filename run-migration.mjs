@@ -19,28 +19,18 @@ const sql = postgres(DATABASE_URL, {
   ssl: 'require',
 });
 
+// 用法：node run-migration.mjs migrations/<檔名>.sql
+const file = process.argv[2];
+if (!file) {
+  console.error('請指定要跑的 migration：node run-migration.mjs migrations/xxx.sql');
+  process.exit(1);
+}
+
 async function runMigration() {
   try {
-    console.log('=== 執行 move_analysis 資料表建立 ===\n');
+    console.log(`=== 執行 ${file} ===\n`);
 
-    const migrationSQL = readFileSync('migrations/add-move-analysis.sql', 'utf-8');
-
-    await sql.unsafe(migrationSQL);
-
-    console.log('✅ move_analysis 表建立成功！\n');
-
-    // 驗證表結構
-    const columns = await sql`
-      SELECT column_name, data_type, is_nullable
-      FROM information_schema.columns
-      WHERE table_name = 'move_analysis'
-      ORDER BY ordinal_position
-    `;
-
-    console.log('表結構：');
-    columns.forEach(col => {
-      console.log(`  - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
-    });
+    await sql.unsafe(readFileSync(file, 'utf-8'));
 
     console.log('\n=== ✅ Migration 完成 ===');
   } catch (err) {

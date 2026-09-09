@@ -13,7 +13,7 @@ import {
   THREEFOLD_REASON,
   type Outcome,
 } from '@/lib/chess';
-import { notifyMove, notifyChat } from '@/lib/discord';
+import { notifyMove, notifyChat, notifyEvent } from '@/lib/discord';
 import { fetchCloudEvalWithRateLimit } from '@/lib/lichess';
 import { Chess } from 'chess.js';
 
@@ -226,6 +226,28 @@ export async function resign(gameId: number): Promise<ActionResult> {
     where id = ${gameId}
   `;
 
+  const [opponent] = await sql<{ display_name: string; discord_id: string | null }[]>`
+    select display_name, discord_id from players where id = ${winnerId}
+  `;
+
+  // Pusher：對方頁面立刻看到終局
+  after(() => {
+    pusher.trigger('game-updates', 'move', { gameId }).catch((err) => {
+      console.error('[pusher resign]', err);
+    });
+  });
+
+  after(() =>
+    notifyEvent({
+      opponentDiscordId: opponent?.discord_id ?? null,
+      gameId,
+      lead: '這局結束了',
+      title: '認輸',
+      detail: `${me.display_name} 認輸，${opponent?.display_name ?? '對方'} 獲勝。`,
+      ended: true,
+    }),
+  );
+
   revalidatePath('/');
   return { ok: true };
 }
@@ -240,6 +262,8 @@ export async function resign(gameId: number): Promise<ActionResult> {
  */
 export async function takeback(gameId: number): Promise<ActionResult> {
   const me = await requirePlayer();
+  let opponentId: string | null = null;
+  let undone: { ply: number; san: string } | null = null;
 
   try {
     await sql.begin(async (tx) => {
@@ -249,6 +273,7 @@ export async function takeback(gameId: number): Promise<ActionResult> {
 
       if (!game) throw new UserError('找不到這盤棋。');
       if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+      opponentId = game.white_id === me.id ? game.black_id : game.white_id;
 
       const myColor = game.white_id === me.id ? 'w' : 'b';
       const takebacksLeft =
@@ -265,8 +290,8 @@ export async function takeback(gameId: number): Promise<ActionResult> {
       }
 
       // 檢查 3: 最後一步是我下的
-      const [lastMove] = await tx<{ ply: number; player_id: string }[]>`
-        select ply, player_id from moves
+      const [lastMove] = await tx<{ ply: number; player_id: string; san: string }[]>`
+        select ply, player_id, san from moves
         where game_id = ${gameId}
         order by ply desc
         limit 1
@@ -285,6 +310,7 @@ export async function takeback(gameId: number): Promise<ActionResult> {
         delete from moves
         where game_id = ${gameId} and ply = ${lastMove.ply}
       `;
+      undone = { ply: lastMove.ply, san: lastMove.san };
 
       // 倒回 FEN（從前一步的 fen_after 撈，沒有就用 initial_fen）
       const [prevMove] = await tx<{ fen_after: string }[]>`
@@ -332,6 +358,22 @@ export async function takeback(gameId: number): Promise<ActionResult> {
     });
   });
 
+  after(async () => {
+    const [opponent] = await sql<{ discord_id: string | null }[]>`
+      select discord_id from players where id = ${opponentId}
+    `;
+    await notifyEvent({
+      opponentDiscordId: opponent?.discord_id ?? null,
+      gameId,
+      lead: '對方悔棋了',
+      title: '悔棋',
+      detail: undone
+        ? `${me.display_name} 收回了第 ${Math.ceil(undone.ply / 2)} 手 ${undone.san}，會重下一步。`
+        : `${me.display_name} 悔棋了。`,
+      ended: false,
+    });
+  });
+
   revalidatePath('/');
   return { ok: true };
 }
@@ -345,6 +387,7 @@ export async function takeback(gameId: number): Promise<ActionResult> {
  */
 export async function offerDraw(gameId: number): Promise<ActionResult> {
   const me = await requirePlayer();
+  let opponentId: string | null = null;
 
   try {
     await sql.begin(async (tx) => {
@@ -354,6 +397,7 @@ export async function offerDraw(gameId: number): Promise<ActionResult> {
 
       if (!game) throw new UserError('找不到這盤棋。');
       if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+      opponentId = game.white_id === me.id ? game.black_id : game.white_id;
 
       // 檢查是否已經有待處理的提和
       if (game.pending_draw_offer_by !== null) {
@@ -384,6 +428,21 @@ export async function offerDraw(gameId: number): Promise<ActionResult> {
     });
   });
 
+  // 提和是要對方回應的，人不在頁面上也得知道
+  after(async () => {
+    const [opponent] = await sql<{ discord_id: string | null }[]>`
+      select discord_id from players where id = ${opponentId}
+    `;
+    await notifyEvent({
+      opponentDiscordId: opponent?.discord_id ?? null,
+      gameId,
+      lead: '對方提和，等你回應',
+      title: '提和',
+      detail: `${me.display_name} 提出和棋。`,
+      ended: false,
+    });
+  });
+
   revalidatePath('/');
   return { ok: true };
 }
@@ -398,6 +457,7 @@ export async function respondToDraw(
   accept: boolean,
 ): Promise<ActionResult> {
   const me = await requirePlayer();
+  let opponentId: string | null = null;
 
   try {
     await sql.begin(async (tx) => {
@@ -407,6 +467,7 @@ export async function respondToDraw(
 
       if (!game) throw new UserError('找不到這盤棋。');
       if (game.status !== 'ongoing') throw new UserError('這盤棋已經結束了。');
+      opponentId = game.white_id === me.id ? game.black_id : game.white_id;
 
       if (game.pending_draw_offer_by === null) {
         throw new UserError('目前沒有待處理的提和。');
@@ -449,6 +510,31 @@ export async function respondToDraw(
     pusher.trigger('game-updates', 'move', { gameId }).catch((err) => {
       console.error('[pusher respondToDraw]', err);
     });
+  });
+
+  after(async () => {
+    const [opponent] = await sql<{ discord_id: string | null }[]>`
+      select discord_id from players where id = ${opponentId}
+    `;
+    await notifyEvent(
+      accept
+        ? {
+            opponentDiscordId: opponent?.discord_id ?? null,
+            gameId,
+            lead: '這局結束了',
+            title: '和棋',
+            detail: `${me.display_name} 接受和棋。`,
+            ended: true,
+          }
+        : {
+            opponentDiscordId: opponent?.discord_id ?? null,
+            gameId,
+            lead: '提和被拒絕了',
+            title: '拒絕和棋',
+            detail: `${me.display_name} 拒絕了和棋，繼續下。`,
+            ended: false,
+          },
+    );
   });
 
   revalidatePath('/');
@@ -511,6 +597,8 @@ export async function updateBoardTheme(
 export async function sendChatMessage(
   gameId: number,
   message: string,
+  /** 回覆哪一則（同一局的 chat_messages.id） */
+  replyTo: number | null = null,
 ): Promise<ActionResult> {
   const me = await requirePlayer();
 
@@ -532,15 +620,25 @@ export async function sendChatMessage(
       select ply_count, white_id, black_id, status from games where id = ${gameId}
     `;
 
+    // 回覆的對象要真的存在、而且是同一局的，不然 reply_to 會指到別盤棋去
+    let quoted: { player_id: string; message: string } | null = null;
+    if (replyTo !== null) {
+      [quoted] = await sql<{ player_id: string; message: string }[]>`
+        select player_id, message from chat_messages
+        where id = ${replyTo} and game_id = ${gameId}
+      `;
+      if (!quoted) return { ok: false, message: '要回覆的訊息不存在。' };
+    }
+
     await sql`
-      insert into chat_messages (game_id, player_id, message, ply)
-      values (${gameId}, ${me.id}, ${trimmedMessage}, ${game?.ply_count ?? null})
+      insert into chat_messages (game_id, player_id, message, ply, reply_to)
+      values (${gameId}, ${me.id}, ${trimmedMessage}, ${game?.ply_count ?? null}, ${replyTo})
     `;
 
     if (game) {
       const opponentId = game.white_id === me.id ? game.black_id : game.white_id;
-      const [opponent] = await sql<{ discord_id: string | null }[]>`
-        select discord_id from players where id = ${opponentId}
+      const [opponent] = await sql<{ display_name: string; discord_id: string | null }[]>`
+        select display_name, discord_id from players where id = ${opponentId}
       `;
 
       notice = {
@@ -550,6 +648,17 @@ export async function sendChatMessage(
         message: trimmedMessage,
         ply: game.ply_count,
         ended: game.status !== 'ongoing',
+        ...(quoted
+          ? {
+              replyTo: {
+                senderName:
+                  quoted.player_id === me.id
+                    ? me.display_name
+                    : opponent?.display_name ?? '對方',
+                message: quoted.message,
+              },
+            }
+          : {}),
       };
     }
   } catch (err) {

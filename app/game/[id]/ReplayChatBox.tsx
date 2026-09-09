@@ -1,6 +1,8 @@
 'use client';
 
+import { useRef } from 'react';
 import { type ChatMessage } from '@/lib/db';
+import { ChatQuote, jumpToMessage } from '../../ChatQuote';
 
 type Props = {
   messages: ChatMessage[];
@@ -17,11 +19,14 @@ export default function ReplayChatBox({
   finalPlyCount,
   onJumpToPly,
 }: Props) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const byId = new Map(messages.map((m) => [m.id, m]));
+
   return (
     <div className="chat-box">
       <h3 className="chat-title">對局聊天記錄</h3>
 
-      <div className="chat-messages">
+      <div className="chat-messages" ref={listRef}>
         {messages.length === 0 && (
           // 這個元件是分頁的內容，回傳 null 會讓分頁下面空一塊
           <p className="chat-empty">這局沒有聊天記錄</p>
@@ -34,6 +39,7 @@ export default function ReplayChatBox({
           return (
             <div
               key={msg.id}
+              data-message-id={msg.id}
               className={`chat-message ${isMe ? 'chat-message-me' : 'chat-message-opponent'} ${canJump ? 'chat-message-clickable' : ''}`}
               onClick={() => canJump && onJumpToPly(msg.ply!)}
               title={canJump ? `點擊跳到第 ${Math.ceil(msg.ply! / 2)} 手` : ''}
@@ -44,6 +50,14 @@ export default function ReplayChatBox({
                 </span>
                 <span className="chat-ply">{plyLabel}</span>
               </div>
+              {msg.reply_to !== null && (
+                <ChatQuote
+                  original={byId.get(msg.reply_to) ?? null}
+                  myId={myId}
+                  opponentName={opponentName}
+                  onJump={() => jumpToMessage(listRef.current, msg.reply_to!)}
+                />
+              )}
               <div className="chat-message-content">{msg.message}</div>
             </div>
           );
