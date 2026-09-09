@@ -19,9 +19,9 @@ type Stats = {
 
 export default async function StatsPage() {
   const me = await currentPlayer();
-  if (!me) {
-    redirect('/?error=需要登入');
-  }
+  // 首頁沒登入會自己顯示「需要專屬網址」，這裡不用帶訊息 ——
+  // 而且中文塞進 Location header 會被 Node 拒絕，整頁直接 500。
+  if (!me) redirect('/');
 
   // 所有已結束的對局
   const games = await sql<Game[]>`
