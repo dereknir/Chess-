@@ -2,11 +2,12 @@ import postgres from 'postgres';
 import { readFileSync } from 'fs';
 
 const envContent = readFileSync('.env.local', 'utf-8');
+// 不能 split('=') 取第二段：連線字串本身就有 ?sslmode=require，會被截斷
 const DATABASE_URL = envContent
   .split('\n')
   .find(line => line.startsWith('DATABASE_URL='))
-  ?.split('=')[1]
-  ?.trim();
+  ?.slice('DATABASE_URL='.length)
+  .trim();
 
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL not found in .env.local');
