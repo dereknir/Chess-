@@ -13,7 +13,7 @@ import {
   THREEFOLD_REASON,
   type Outcome,
 } from '@/lib/chess';
-import { notifyMove } from '@/lib/discord';
+import { notifyMove, notifyChat } from '@/lib/discord';
 import { fetchCloudEvalWithRateLimit } from '@/lib/lichess';
 import { Chess } from 'chess.js';
 
@@ -523,16 +523,35 @@ export async function sendChatMessage(
     return { ok: false, message: '訊息太長（最多 500 字）。' };
   }
 
+  // Discord 推播要用到對手是誰，所以順便撈雙方 id
+  let notice: Parameters<typeof notifyChat>[0] | null = null;
+
   try {
     // 取得當前手數
     const [game] = await sql<Game[]>`
-      select ply_count from games where id = ${gameId}
+      select ply_count, white_id, black_id, status from games where id = ${gameId}
     `;
 
     await sql`
       insert into chat_messages (game_id, player_id, message, ply)
       values (${gameId}, ${me.id}, ${trimmedMessage}, ${game?.ply_count ?? null})
     `;
+
+    if (game) {
+      const opponentId = game.white_id === me.id ? game.black_id : game.white_id;
+      const [opponent] = await sql<{ discord_id: string | null }[]>`
+        select discord_id from players where id = ${opponentId}
+      `;
+
+      notice = {
+        opponentDiscordId: opponent?.discord_id ?? null,
+        senderName: me.display_name,
+        gameId,
+        message: trimmedMessage,
+        ply: game.ply_count,
+        ended: game.status !== 'ongoing',
+      };
+    }
   } catch (err) {
     console.error('[sendChatMessage]', err);
     return { ok: false, message: '發送訊息失敗，再試一次。' };
@@ -544,6 +563,9 @@ export async function sendChatMessage(
       console.error('[pusher sendChatMessage]', err);
     });
   });
+
+  // Discord 推播：對方沒開著頁面也知道有人講話
+  if (notice) after(() => notifyChat(notice!));
 
   revalidatePath('/');
   revalidatePath('/game/[id]');

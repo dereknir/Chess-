@@ -3,6 +3,7 @@ const APP_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 const ACCENT = 0x3d63ff;
 const GOLD = 0xe8c94a;
+const CHAT = 0x808da6;   // 比落子通知低調：聊天不是輪到你了
 
 type MoveNotice = {
   opponentDiscordId: string | null;
@@ -36,7 +37,9 @@ export async function notifyMove(n: MoveNotice) {
       ? n.ending.headline
       : `第 ${moveNo} 手　${n.san}${n.isCheck ? '　將軍' : ''}`,
     description: n.ending ? n.ending.detail : `${n.moverName} 已落子`,
-    url: `${APP_URL}/game/${n.gameId}`,
+    // 還沒結束就指首頁 —— /game/<id> 是唯讀的複盤頁，落不了子。
+    // 局結束了才指複盤頁，那正是要去看的地方。
+    url: n.ending ? `${APP_URL}/game/${n.gameId}` : APP_URL,
     color: n.ending ? GOLD : ACCENT,
     ...(img ? { image: { url: img } } : {}),
     footer: { text: n.fen },
@@ -58,6 +61,58 @@ export async function notifyMove(n: MoveNotice) {
     // 通知失敗不該讓落子失敗，記下來就好。
     console.error('[discord] 推播失敗', err);
   });
+}
+
+type ChatNotice = {
+  opponentDiscordId: string | null;
+  senderName: string;
+  gameId: number;
+  message: string;
+  /** 訊息是在第幾 ply 發的，null 代表局前 */
+  ply: number | null;
+  /** 這局是否已經結束 —— 決定標籤與連結要指去哪 */
+  ended: boolean;
+};
+
+/**
+ * 對方發訊息後推播。
+ *
+ * 跟 notifyMove 走同一條 webhook，只是換個顏色、不放棋盤圖。
+ * 每一則都 mention —— 只有兩個人在用，寧可吵一點也不要漏掉。
+ */
+export async function notifyChat(n: ChatNotice) {
+  if (!WEBHOOK) return; // 本機開發沒設就安靜跳過
+
+  const mention = n.opponentDiscordId ? `<@${n.opponentDiscordId}>` : '';
+
+  const embed = {
+    title: `${n.senderName}　${n.ended ? '局後' : plyLabel(n.ply)}`,
+    description: n.message,
+    // 進行中的對局要進首頁才回得了話，/game/<id> 是唯讀的複盤頁
+    url: n.ended ? `${APP_URL}/game/${n.gameId}` : APP_URL,
+    color: CHAT,
+  };
+
+  await fetch(WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      content: mention ? `${mention} 有新訊息` : '有新訊息',
+      allowed_mentions: {
+        parse: [],                                          // 擋掉 @everyone
+        users: n.opponentDiscordId ? [n.opponentDiscordId] : [],
+      },
+      embeds: [embed],
+    }),
+  }).catch((err) => {
+    // 通知失敗不該讓發訊息失敗，記下來就好。
+    console.error('[discord] 聊天推播失敗', err);
+  });
+}
+
+function plyLabel(ply: number | null): string {
+  if (ply === null || ply === 0) return '局前';
+  return `第 ${Math.ceil(ply / 2)} 手`;
 }
 
 /**
