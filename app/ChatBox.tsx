@@ -111,7 +111,9 @@ export default function ChatBox({
   }
 
   // 引用框要顯示原訊息的內容，用 id 找
-  const byId = new Map(initialMessages.map((m) => [m.id, m]));
+  // key 一律轉字串：postgres.js 把 int8 回成字串、int4 回成數字，
+  // id 與 reply_to 只要型別不一致 Map 就找不到。
+  const byId = new Map(initialMessages.map((m) => [String(m.id), m]));
   const nameOf = (m: ChatMessage) => (m.player_id === myId ? '我' : opponentName);
 
   return (
@@ -148,7 +150,7 @@ export default function ChatBox({
                 </div>
                 {msg.reply_to !== null && (
                   <ChatQuote
-                    original={byId.get(msg.reply_to) ?? null}
+                    original={byId.get(String(msg.reply_to)) ?? null}
                     myId={myId}
                     opponentName={opponentName}
                     onJump={() => jumpToMessage(listRef.current, msg.reply_to!)}

@@ -20,7 +20,9 @@ export default function ReplayChatBox({
   onJumpToPly,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
-  const byId = new Map(messages.map((m) => [m.id, m]));
+  // key 一律轉字串：postgres.js 把 int8 回成字串、int4 回成數字，
+  // id 與 reply_to 只要型別不一致 Map 就找不到。
+  const byId = new Map(messages.map((m) => [String(m.id), m]));
 
   return (
     <div className="chat-box">
@@ -52,7 +54,7 @@ export default function ReplayChatBox({
               </div>
               {msg.reply_to !== null && (
                 <ChatQuote
-                  original={byId.get(msg.reply_to) ?? null}
+                  original={byId.get(String(msg.reply_to)) ?? null}
                   myId={myId}
                   opponentName={opponentName}
                   onJump={() => jumpToMessage(listRef.current, msg.reply_to!)}

@@ -95,7 +95,7 @@ create table chat_messages (
   player_id    text        not null references players(id),
   message      text        not null,      -- 應用層限 500 字
   ply          int,                       -- 發言當下走到第幾 ply，null 代表局前
-  reply_to     bigint      references chat_messages(id),  -- 回覆哪一則，同一局
+  reply_to     integer     references chat_messages(id),  -- 回覆哪一則，同一局；型別要跟 id 一致
   created_at   timestamptz not null default now()
 );
 
@@ -143,7 +143,7 @@ insert into players (id, display_name, token, discord_id) values
 --      on chat_messages (game_id, created_at);
 --    alter table chat_messages add column if not exists ply int;
 --    alter table chat_messages add column if not exists
---      reply_to bigint references chat_messages(id);
+--      reply_to integer references chat_messages(id);
 -- ============================================================
 
 
