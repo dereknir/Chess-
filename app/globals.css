@@ -515,6 +515,32 @@ a { color: inherit; }
 
 .verdict p { margin: 0; color: var(--slate); font-size: 13.5px; }
 
+/* 首頁終局畫面底下的兩顆按鈕：開新局是主要動作，看複盤是次要 */
+.verdict-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+
+a.btn, a.btn-ghost {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.back-link {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.back-link a {
+  color: var(--slate);
+  text-decoration: none;
+}
+
+.back-link a:hover { color: var(--chalk); }
+
 /* ---------- 分析按鈕 ---------- */
 
 .analysis-section {
@@ -791,6 +817,9 @@ input[type="text"]:focus, textarea:focus {
   cursor: pointer;
 }
 
+.btn { transition: opacity .15s; }
+/* 跟聊天室的送出鈕同一套：hover 只把不透明度降到 .9 */
+.btn:hover:not(:disabled) { opacity: .9; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
 .btn-ghost {

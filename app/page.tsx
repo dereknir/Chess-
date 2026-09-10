@@ -3,7 +3,9 @@ import sql, { type Game, type Move, type Player, type ChatMessage } from '@/lib/
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
 import { getTheme } from '@/lib/themes';
+import { headline } from '@/lib/headline';
 import Board from './Board';
+import FinalBoard from './FinalBoard';
 import NewGame from './NewGame';
 import MoveLog from './MoveLog';
 import PgnButton from './PgnButton';
@@ -17,9 +19,9 @@ export const dynamic = 'force-dynamic';
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ as?: string }>;
+  searchParams: Promise<{ as?: string; new?: string }>;
 }) {
-  const { as } = await searchParams;
+  const { as, new: startNew } = await searchParams;
 
   // 第一次用秘密網址進站：轉去 /enter 記進 cookie，然後把 token 從網址上拿掉 ——
   // 免得之後截圖或分享連結時把憑證一起送出去。
@@ -40,17 +42,34 @@ export default async function Page({
     );
   }
 
-  const [game] = await sql<Game[]>`
+  // 進行中的那盤；沒有的話就是最近結束的那盤 —— 結束後首頁要停在終局畫面，
+  // 讓兩個人都看得到結果、也還能聊，按了「開新的一盤」(?new) 才進開局表單。
+  let [game] = await sql<Game[]>`
     select * from games where status = 'ongoing' limit 1
   `;
+  const ongoing = Boolean(game);
+  if (!game && startNew === undefined) {
+    [game] = await sql<Game[]>`
+      select * from games where status <> 'ongoing'
+      order by ended_at desc limit 1
+    `;
+  }
 
-  // ---------- 沒有進行中的棋局：開局表單 ----------
+  // ---------- 沒有棋局可看：開局表單 ----------
   if (!game) {
     const players = await sql<Player[]>`
       select id, display_name, token, discord_id from players order by id
     `;
+    const [lastGame] = await sql<{ id: number }[]>`
+      select id from games where status <> 'ongoing' order by ended_at desc limit 1
+    `;
     return (
       <main>
+        {lastGame && (
+          <p className="back-link">
+            <a href="/">← 回到上一盤的結果</a>
+          </p>
+        )}
         <NewGame
           players={players.map((p) => ({
             id: p.id,
@@ -85,22 +104,47 @@ export default async function Page({
 
   return (
     <main>
-      <RealtimeRefresh gameId={game.id} enabled={game.status === 'ongoing'} />
+      <RealtimeRefresh gameId={game.id} enabled={ongoing} />
       <ThemeSelector currentTheme={me.board_theme} />
+
+      {/* 終局：先講結果，再給兩條路 —— 看複盤，或開新的一盤 */}
+      {!ongoing && (
+        <div className="verdict">
+          <h2>{headline(game, white.display_name, black.display_name)}</h2>
+          <p>
+            {white.display_name} 執白　·　{Math.ceil(game.ply_count / 2)} 回合　·　
+            {game.ended_at?.toISOString().slice(0, 10)}
+          </p>
+          <div className="verdict-actions">
+            <a className="btn" href="/?new">開新的一盤</a>
+            <a className="btn-ghost" href={`/game/${game.id}`}>看複盤與分析</a>
+          </div>
+        </div>
+      )}
+
       <div className="game">
-        <Board
-          gameId={game.id}
-          fen={game.current_fen}
-          myColor={myColor}
-          isMyTurn={game.turn === myColor}
-          plyCount={game.ply_count}
-          opponentName={opponent.display_name}
-          myTakebacksLeft={myTakebacksLeft}
-          lastMoveUci={lastMove?.uci ?? null}
-          pendingDrawOfferBy={game.pending_draw_offer_by}
-          myId={me.id}
-          theme={theme}
-        />
+        {ongoing ? (
+          <Board
+            gameId={game.id}
+            fen={game.current_fen}
+            myColor={myColor}
+            isMyTurn={game.turn === myColor}
+            plyCount={game.ply_count}
+            opponentName={opponent.display_name}
+            myTakebacksLeft={myTakebacksLeft}
+            lastMoveUci={lastMove?.uci ?? null}
+            pendingDrawOfferBy={game.pending_draw_offer_by}
+            myId={me.id}
+            theme={theme}
+          />
+        ) : (
+          <FinalBoard
+            fen={game.current_fen}
+            orientation={myColor === 'w' ? 'white' : 'black'}
+            lastMoveUci={lastMove?.uci ?? null}
+            theme={theme}
+          />
+        )}
 
         <MoveLogChatTabs
           chatMessageCount={chatMessages.length}
@@ -122,7 +166,7 @@ export default async function Page({
               gameId={game.id}
               myId={me.id}
               opponentName={opponent.display_name}
-              finalPlyCount={game.status === 'ongoing' ? null : game.ply_count}
+              finalPlyCount={ongoing ? null : game.ply_count}
               initialMessages={chatMessages}
             />
           }

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import sql, { type Game, type Move, type Player, type MoveAnalysis, type ChatMessage } from '@/lib/db';
 import { currentPlayer } from '@/lib/auth';
 import { buildPgn } from '@/lib/chess';
+import { headline } from '@/lib/headline';
 import NoteEditor from './NoteEditor';
 import AnalyzeButton from './AnalyzeButton';
 import GameReplayPage from './GameReplayPage';
@@ -81,13 +82,4 @@ export default async function GamePage({
       />
     </main>
   );
-}
-
-function headline(game: Game, white: string, black: string) {
-  if (game.result === '1/2-1/2') {
-    return game.status === 'stalemate' ? '逼和' : '和棋';
-  }
-  const winner = game.result === '1-0' ? white : black;
-  const how = game.status === 'resigned' ? '對手認輸' : '將死';
-  return `${winner} 獲勝　·　${how}`;
 }
