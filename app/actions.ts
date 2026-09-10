@@ -173,36 +173,63 @@ export async function newGame(input: {
   whiteId: string;
   initialFen?: string;
 }): Promise<ActionResult> {
-  await requirePlayer();
+  const me = await requirePlayer();
 
   const fen = input.initialFen?.trim() || STARTING_FEN;
   const check = isPlayableFen(fen);
   if (!check.ok) return { ok: false, message: check.why };
 
-  const [white] = await sql<{ id: string }[]>`
-    select id from players where id = ${input.whiteId}
+  type Seat = { id: string; display_name: string; discord_id: string | null };
+  const [white] = await sql<Seat[]>`
+    select id, display_name, discord_id from players where id = ${input.whiteId}
   `;
   if (!white) return { ok: false, message: '找不到這位玩家。' };
 
-  const [black] = await sql<{ id: string }[]>`
-    select id from players where id <> ${input.whiteId} limit 1
+  const [black] = await sql<Seat[]>`
+    select id, display_name, discord_id from players where id <> ${input.whiteId} limit 1
   `;
 
   const turn = fen.split(' ')[1] === 'b' ? 'b' : 'w';
 
+  let gameId: number;
   try {
-    await sql`
+    const [created] = await sql<{ id: number }[]>`
       insert into games
         (white_id, black_id, initial_fen, current_fen, turn)
       values
         (${white.id}, ${black.id}, ${fen}, ${fen}, ${turn})
+      returning id
     `;
+    gameId = created.id;
   } catch (err) {
     if (err instanceof Error && /only_one_ongoing_game/.test(err.message)) {
       return { ok: false, message: '已經有一盤在進行中，先下完那盤。' };
     }
     throw err;
   }
+
+  // 對方如果正停在終局畫面（或開局表單），要讓他的頁面自己換成新的一盤。
+  // 這個事件不帶 gameId 過濾：聽的人手上只有舊局的 id。
+  after(() => {
+    pusher.trigger('game-updates', 'new-game', {}).catch((err) => {
+      console.error('[pusher newGame]', err);
+    });
+  });
+
+  // 開局也要告訴對方 —— 「輪到你了」只在落子後才發，
+  // 對方執白的話沒有這則就永遠不知道該他走了。
+  const opponent = white.id === me.id ? black : white;
+  const opponentToMove = (turn === 'w' ? white.id : black.id) === opponent.id;
+  after(() =>
+    notifyEvent({
+      opponentDiscordId: opponent.discord_id,
+      gameId,
+      lead: opponentToMove ? '新的一盤，你先走' : '新的一盤開始了',
+      title: '開新的一盤',
+      detail: `${me.display_name} 開了新的一盤，${white.display_name} 執白。`,
+      ended: false,
+    }),
+  );
 
   revalidatePath('/');
   return { ok: true };

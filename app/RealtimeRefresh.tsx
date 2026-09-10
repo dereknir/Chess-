@@ -44,6 +44,13 @@ export default function RealtimeRefresh({
       }
     });
 
+    // 對方開了新的一盤：首頁不管停在終局畫面還是開局表單，都要換成新局。
+    // 不看 gameId —— 這時候手上的 id 是舊局的。
+    channel.bind('new-game', () => {
+      console.log('[pusher] 開了新的一盤，刷新');
+      router.refresh();
+    });
+
     return () => {
       channel.unbind_all();
       channel.unsubscribe();

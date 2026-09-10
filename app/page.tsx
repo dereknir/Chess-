@@ -65,6 +65,8 @@ export default async function Page({
     `;
     return (
       <main>
+        {/* 停在表單時對方先開了局，也要跟著換頁；gameId 給 0 只是讓 chat 事件對不上 */}
+        <RealtimeRefresh gameId={0} enabled={false} />
         {lastGame && (
           <p className="back-link">
             <a href="/">← 回到上一盤的結果</a>
