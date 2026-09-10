@@ -600,12 +600,6 @@ a.btn, a.btn-ghost {
   border-radius: 3px;
 }
 
-.progress-text {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: var(--slate);
-  text-align: center;
-}
 
 .error-text {
   margin: 8px 0 0;
@@ -770,7 +764,7 @@ input[type="text"]:focus, textarea:focus {
 }
 
 @media (max-width: 640px) {
-  .editor { grid-template-columns: 1fr; }
+  .editor { grid-template-columns: minmax(0, 1fr); } /* 同 .game：1fr 會被 min-content 撐開 */
 }
 
 .tray {
@@ -869,7 +863,7 @@ input[type="text"]:focus, textarea:focus {
 /* 執黑執白：名字順序本來就是白在前，但沒標的話讀不出來 */
 .records .side {
   margin-left: 3px;
-  font-family: var(--sans); /* mono 的中文會 fallback，寬度會歪 */
+  font-family: var(--sans);
   font-size: 10px;
   color: var(--dim);
   vertical-align: 1px; /* 對齊中文字的視覺中線 */

@@ -39,6 +39,7 @@ create table games (
   pending_draw_offer_by text references players(id),
 
   note         text,                      -- 這局的備註（「某某開局」之類）
+  analysis_status text,                   -- 'pending' | 'running' | 'done' | 'error'，AnalyzeButton 在看
 
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
@@ -87,11 +88,13 @@ create table moves (
 create index moves_player_idx on moves (player_id, created_at desc);
 
 -- ---------- chat_messages ----------
--- 對局中的留言。sendChatMessage() 會寫這張表，但目前還沒有讀它的畫面
--- ——只寫不讀，UI 補上之前這裡都會是空的。
+-- 對局中的留言。ChatBox 讀寫，複盤頁唯讀。
+-- id / game_id 是 int4 不是 bigint：線上這張表當初是手動建的，就是 int4。
+-- 這裡照線上寫，不要「修正」成 bigserial —— postgres.js 把 int8 回成字串、
+-- int4 回成數字，reply_to 跟 id 型別一不一致，前端用 id 查原訊息就會找不到。
 create table chat_messages (
-  id           bigserial   primary key,
-  game_id      bigint      not null references games(id) on delete cascade,
+  id           serial      primary key,
+  game_id      integer     not null references games(id) on delete cascade,
   player_id    text        not null references players(id),
   message      text        not null,      -- 應用層限 500 字
   ply          int,                       -- 發言當下走到第幾 ply，null 代表局前
@@ -100,6 +103,28 @@ create table chat_messages (
 );
 
 create index chat_messages_game_idx on chat_messages (game_id, created_at);
+
+-- ---------- move_analysis ----------
+-- Lichess Cloud Eval 的結果，一步一列。analyzeGame() 寫，複盤頁讀。
+-- cp / mate_in 都是「輪到走的那方」視角，EvaluationGraph 自己翻成白方視角。
+create table move_analysis (
+  game_id      integer     not null references games(id) on delete cascade,
+  ply          int         not null,
+  cp           int,                       -- centipawns
+  mate_in      int,                       -- 幾步將死，正=走的人贏
+  best_cp      int,                       -- 步前最佳走法的評分（同視角）
+  best_mate_in int,
+  best_move    text,                      -- UCI，'e2e4'
+  best_move_san text,                     -- SAN，'e4'
+  actual_move_rank int,                   -- 實際走法在建議裡排第幾，1 = 最佳
+  depth        int,
+  classification text,                    -- best | good | inaccuracy | mistake | blunder
+  created_at   timestamptz not null default now(),
+  primary key (game_id, ply)
+);
+
+create index idx_move_analysis_game on move_analysis (game_id);
+create index idx_move_analysis_classification on move_analysis (classification);
 
 
 -- ============================================================
@@ -131,10 +156,11 @@ insert into players (id, display_name, token, discord_id) values
 --    alter table games add column if not exists
 --      pending_draw_offer_by text references players(id);
 --    alter table games add column if not exists note text;
+--    alter table games add column if not exists analysis_status text;
 --
 --    create table if not exists chat_messages (
---      id         bigserial   primary key,
---      game_id    bigint      not null references games(id) on delete cascade,
+--      id         serial      primary key,
+--      game_id    integer     not null references games(id) on delete cascade,
 --      player_id  text        not null references players(id),
 --      message    text        not null,
 --      created_at timestamptz not null default now()
@@ -144,6 +170,14 @@ insert into players (id, display_name, token, discord_id) values
 --    alter table chat_messages add column if not exists ply int;
 --    alter table chat_messages add column if not exists
 --      reply_to integer references chat_messages(id);
+--
+--    move_analysis 整張表：跑 migrations/add-move-analysis.sql，
+--    再跑 migrations/add-best-eval-fields.sql。
+--
+--  對照線上結構用這句（information_schema 才是真相，這個檔案是抄它的）：
+--    select table_name, column_name, data_type, is_nullable, column_default
+--    from information_schema.columns where table_schema = 'public'
+--    order by table_name, ordinal_position;
 -- ============================================================
 
 

@@ -9,6 +9,10 @@ type Props = {
   initialFen: string;
   /** 使用者的顏色，用於決定圖表視角 */
   userColor?: 'white' | 'black';
+  /** 有給就能點：點哪一步，盤面跳到哪一步 */
+  onJumpToPly?: (ply: number) => void;
+  /** 盤面目前停在哪一步，畫一個實心點 */
+  currentPly?: number;
 };
 
 /**
@@ -17,7 +21,14 @@ type Props = {
  * 顯示整局的評估變化，X 軸是回合數，Y 軸是評分。
  * 從使用者視角顯示：使用者優勢往上，對手優勢往下。
  */
-export default function EvaluationGraph({ analysis, moves, initialFen, userColor = 'white' }: Props) {
+export default function EvaluationGraph({
+  analysis,
+  moves,
+  initialFen,
+  userColor = 'white',
+  onJumpToPly,
+  currentPly,
+}: Props) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   if (analysis.length === 0) return null;
@@ -124,6 +135,14 @@ export default function EvaluationGraph({ analysis, moves, initialFen, userColor
   const midY = cpToY(0, null);
 
   const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
+  const currentPoint = currentPly !== undefined ? points.find((p) => p.ply === currentPly) : undefined;
+
+  // 每個點左右各切一半當命中區：滑到哪一段就算哪一步，不用精準點到那顆小圓點
+  const hitAreas = points.map((p, i) => {
+    const left = i === 0 ? padding.left : (points[i - 1].x + p.x) / 2;
+    const right = i === points.length - 1 ? width - padding.right : (p.x + points[i + 1].x) / 2;
+    return { x: left, w: Math.max(0, right - left) };
+  });
 
   return (
     <div className="eval-graph" style={{ position: 'relative' }}>
@@ -212,8 +231,47 @@ export default function EvaluationGraph({ analysis, moves, initialFen, userColor
             r={hoveredIndex === i ? "4" : "2.5"}
             fill="var(--brass)"
             opacity={hoveredIndex === i ? "1" : "0.6"}
-            style={{ cursor: 'pointer' }}
+            pointerEvents="none"
+          />
+        ))}
+
+        {/* 盤面目前停在這一步 */}
+        {currentPoint && (
+          <>
+            <line
+              x1={currentPoint.x}
+              y1={padding.top}
+              x2={currentPoint.x}
+              y2={height - padding.bottom}
+              stroke="var(--chalk)"
+              strokeWidth="1"
+              opacity="0.35"
+              pointerEvents="none"
+            />
+            <circle
+              cx={currentPoint.x}
+              cy={currentPoint.y}
+              r="5"
+              fill="var(--ink)"
+              stroke="var(--chalk)"
+              strokeWidth="2"
+              pointerEvents="none"
+            />
+          </>
+        )}
+
+        {/* 命中區：透明，蓋在最上層接 hover 與點擊 */}
+        {hitAreas.map((h, i) => (
+          <rect
+            key={i}
+            x={h.x}
+            y={padding.top}
+            width={h.w}
+            height={chartHeight}
+            fill="transparent"
+            style={{ cursor: onJumpToPly ? 'pointer' : 'default' }}
             onMouseEnter={() => setHoveredIndex(i)}
+            onClick={() => onJumpToPly?.(points[i].ply)}
           />
         ))}
 
@@ -228,6 +286,7 @@ export default function EvaluationGraph({ analysis, moves, initialFen, userColor
             strokeWidth="1"
             strokeDasharray="2 2"
             opacity="0.5"
+            pointerEvents="none"
           />
         )}
       </svg>

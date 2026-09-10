@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import type { Move, MoveAnalysis } from '@/lib/db';
 import EvaluationGraph from './EvaluationGraph';
 
@@ -24,10 +27,29 @@ type Props = {
  */
 export default function MoveLog({ moves, initialFen, caption, analysis, footer, userColor, onJumpToPly, currentPly }: Props) {
   const rows = pairByFullmove(moves, initialFen);
+  const listRef = useRef<HTMLOListElement>(null);
 
   // 建立 ply -> analysis 的映射
   const analysisMap = new Map<number, MoveAnalysis>();
   analysis?.forEach(a => analysisMap.set(a.ply, a));
+
+  // 盤面換到哪一步，記譜表就捲到那一步 —— 用方向鍵翻到後段時高亮不會跑出可視範圍。
+  // 只捲 .rows 自己，不用 scrollIntoView：它會連外層 document 一起捲，手機上整頁被拉走。
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || currentPly === undefined) return;
+    const el = list.querySelector<HTMLElement>(`[data-ply="${currentPly}"]`);
+    if (!el) return;
+
+    const listBox = list.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    const margin = 12;
+    if (box.top < listBox.top + margin) {
+      list.scrollTo({ top: list.scrollTop + (box.top - listBox.top) - margin, behavior: 'smooth' });
+    } else if (box.bottom > listBox.bottom - margin) {
+      list.scrollTo({ top: list.scrollTop + (box.bottom - listBox.bottom) + margin, behavior: 'smooth' });
+    }
+  }, [currentPly]);
 
   return (
     <aside className="sheet">
@@ -37,13 +59,20 @@ export default function MoveLog({ moves, initialFen, caption, analysis, footer, 
       </header>
 
       {analysis && analysis.length > 0 && (
-        <EvaluationGraph analysis={analysis} moves={moves} initialFen={initialFen} userColor={userColor} />
+        <EvaluationGraph
+          analysis={analysis}
+          moves={moves}
+          initialFen={initialFen}
+          userColor={userColor}
+          onJumpToPly={onJumpToPly}
+          currentPly={currentPly}
+        />
       )}
 
       {rows.length === 0 ? (
         <p className="empty-note">還沒有人落子。</p>
       ) : (
-        <ol className="rows">
+        <ol className="rows" ref={listRef}>
           {rows.map((row) => (
             <li key={row.no}>
               <span className="no">{row.no}</span>
@@ -89,6 +118,7 @@ function Cell({
   // 只有走法本身可點，右邊的評分與思考時間不進按鈕
   const sanProps = {
     className: 'san',
+    'data-ply': move.ply,
     'data-check': move.is_check,
     'data-classification': analysis?.classification,
     'data-current': isCurrent,
