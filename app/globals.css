@@ -843,7 +843,7 @@ input[type="text"]:focus, textarea:focus {
 
 .records a {
   display: grid;
-  grid-template-columns: 78px 1fr auto;
+  grid-template-columns: 78px minmax(0, 1fr) auto; /* 1fr 會被長名字撐開 */
   gap: 16px;
   align-items: center;
   padding: 16px 4px;
@@ -858,7 +858,18 @@ input[type="text"]:focus, textarea:focus {
   color: var(--brass);
 }
 
-.records .line { font-size: 14px; }
+.records .line {
+  font-size: 14px;
+  overflow-wrap: anywhere; /* 名字再長也在欄位裡斷，不要撐出去 */
+}
+
+/* 誰贏、怎麼贏、幾回合 —— 固定自己一行 */
+.records .how {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--dim);
+}
 
 /* 執黑執白：名字順序本來就是白在前，但沒標的話讀不出來 */
 .records .side {
@@ -870,6 +881,14 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .records .when { font-size: 12px; color: var(--dim); font-family: var(--mono); }
+
+@media (max-width: 640px) {
+  /* 比分欄縮成剛好，把寬度讓給名字 */
+  .records a {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+}
 
 .record-note {
   margin-top: 6px;

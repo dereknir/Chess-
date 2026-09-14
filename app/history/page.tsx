@@ -78,10 +78,8 @@ export default async function History() {
                   {g.white_name}
                   <span className="side">(白)</span> 對 {g.black_name}
                   <span className="side">(黑)</span>
-
-                  <span style={{ color: 'var(--dim)', fontSize: 12 }}>
-                    {describe(g)}
-                  </span>
+                  {/* 結果自己一行：名字一長，跟在名字後面會在手機上斷得很難看 */}
+                  <span className="how">{describe(g)}</span>
                 </div>
                 {g.note && (
                   <div className="record-note">{g.note}</div>
